@@ -1,10 +1,28 @@
 var express = require('express');
-var port = process.env.PORT || 3000;
+var port = process.env.PORT || 4000;
 var app = express();
-const router = express.Router()
+const router = express.Router();
+const bodyParser = require('body-parser');
 
 const Organization = require('../db/models/organization')
 const Listing = require('../db/models/listing')
+const productInfo = require('../db/models/productInfo')
+
+const listingRoute = require('./Listing/listingRoute')
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use ('/listing',listingRoute)
+
+app.get('/productInfo/:id', (req, res) => {
+    let id = parseInt(req.params.id)
+    productInfo.query()
+        .where('id', id)
+        .then(prod => {
+            res.json(prod)
+        })
+})
 
 app.get('/organizations', (req, res) => {
     Organization.query()
