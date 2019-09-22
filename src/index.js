@@ -38,7 +38,7 @@ app.get('/listing', (req, res) => {
         })
 })
 
-app.get('/organizations/:id', (req, res) => {
+app.get('/organizations/listing/:id', (req, res) => {
     let id = parseInt(req.params.id)
     Organization.query()
         .where('id', id)
