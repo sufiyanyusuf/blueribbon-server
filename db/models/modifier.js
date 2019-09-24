@@ -13,7 +13,7 @@ class Modifier extends Model {
 
     const listings = require('./listing');
     const choices = require('./modifierChoices');
-    const _stepper = require('./stepperElement');
+    const stepper = require('./stepperElement');
     const textField = require('./textfieldElement');
     const multiOption = require('./multiOptionsElement');
 
@@ -38,7 +38,7 @@ class Modifier extends Model {
 
         stepper:{
             relation: Model.HasOneRelation,
-            modelClass:_stepper,
+            modelClass:stepper,
             join:{
                 from : 'Modifiers.id',
                 to : 'Elements_Steppers.modifier_id'

@@ -20,7 +20,6 @@ ModifierRouter.route('/create').post(async function (req, res) {
     const getTextField = () => {
         if (req.body.element_type && req.body.element_type == 'textField') {
             const newTextfield = {
-                element_type:'textField',
                 placeholder:req.body.placeholder
             };
             return newTextfield;
@@ -87,6 +86,36 @@ ModifierRouter.route('/create').post(async function (req, res) {
             const stepper = await modifier
             .$relatedQuery('stepper')
             .insert(getStepper());
+        }
+
+        if (getTextField()){
+            const textField = await modifier
+            .$relatedQuery('textField')
+            .insert(getTextField());
+        }
+
+        if (getCarousel()){
+            const carousel = await modifier
+            .$relatedQuery('multiOption')
+            .insert(getCarousel());
+
+            if (getChoices()){
+                const choices = await modifier
+                .$relatedQuery('choice')
+                .insert(getChoices());
+            }
+        }
+
+        if (getMultiOptions()){
+            const multiOptions = await modifier
+            .$relatedQuery('multiOption')
+            .insert(getMultiOptions());
+
+            if (getChoices()){
+                const choices = await modifier
+                .$relatedQuery('choice')
+                .insert(getChoices());
+            }
         }
         
         res.send({modifier});
