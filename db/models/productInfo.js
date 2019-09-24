@@ -11,8 +11,9 @@ class ProductInfo extends Model {
   static get relationMappings() {
     // Importing models here is a one way to avoid require loops.
     const listings = require('./listing');
+
     return{
-        productInfo:{
+        listing:{
             relation: Model.BelongsToOneRelation,
             modelClass:listings,
             join:{

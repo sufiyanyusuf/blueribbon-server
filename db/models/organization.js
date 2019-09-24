@@ -10,7 +10,7 @@ class Organization extends Model {
   }
 
   static get relationMappings() {
-    // Importing models here is a one way to avoid require loops.
+    
     const listing = require('./listing');
     return{
         listings:{

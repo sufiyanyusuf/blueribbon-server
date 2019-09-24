@@ -9,11 +9,13 @@ const Listing = require('../db/models/listing')
 const productInfo = require('../db/models/productInfo')
 
 const listingRoute = require('./Listing/listingRoute')
+const modifierRoute = require('./Listing/modifierRoute')
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use ('/listing',listingRoute)
+app.use ('/listing',listingRoute);
+app.use ('/modifier',modifierRoute);
 
 app.get('/productInfo/:id', (req, res) => {
     let id = parseInt(req.params.id)
