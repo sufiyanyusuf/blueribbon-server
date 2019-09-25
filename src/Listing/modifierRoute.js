@@ -7,6 +7,15 @@ const Stepper = require('../../db/models/stepperElement');
 const TextField = require('../../db/models/textfieldElement');
 const MultiOptions = require('../../db/models/multiOptionsElement');
 
+ModifierRouter.route('/:listing_id').get(async function (req, res){
+    let listing_id = parseInt(req.params.listing_id)
+    Modifier.query()
+        .where('listing_id', listing_id)
+        .then(modifiers => {
+            res.json(modifiers)
+        })
+});
+
 ModifierRouter.route('/create').post(async function (req, res) {
 
     const newModifier = {
@@ -14,11 +23,12 @@ ModifierRouter.route('/create').post(async function (req, res) {
         description:req.body.description,
         type:req.body.type,
         order:req.body.order,
-        listing_id:req.body.listing_id
+        listing_id:req.body.listing_id,
+        element_type:req.body.element_type
     };
 
     const getTextField = () => {
-        if (req.body.element_type && req.body.element_type == 'textField') {
+        if (req.body.element_type && req.body.element_type == "Textfield"){
             const newTextfield = {
                 placeholder:req.body.placeholder
             };
@@ -27,7 +37,7 @@ ModifierRouter.route('/create').post(async function (req, res) {
     }
 
     const getCarousel = () => {
-        if (req.body.element_type && req.body.element_type == 'carousel') {
+        if (req.body.element_type && req.body.element_type == 'Carousel') {
             const newCarousel = {
                 element_type:'carousel',
                 mandatory:req.body.mandatory,
@@ -38,9 +48,9 @@ ModifierRouter.route('/create').post(async function (req, res) {
     }
 
     const getMultiOptions = () => {
-        if (req.body.element_type && req.body.element_type == 'multiOptions') {
+        if (req.body.element_type && req.body.element_type == 'Option List') {
             const newMultiOptions = {
-                element_type:'multiOptions',
+                element_type:'Option List',
                 mandatory:req.body.mandatory,
                 multi_selection:req.body.multi_selection,
             };
@@ -67,7 +77,7 @@ ModifierRouter.route('/create').post(async function (req, res) {
     }
 
     const getStepper = () => {
-        if (req.body.element_type == 'stepper') {
+        if (req.body.element_type == 'Stepper') {
             const newStepper = {
                 max_value:req.body.maxValue,
                 min_value:req.body.minValue,
