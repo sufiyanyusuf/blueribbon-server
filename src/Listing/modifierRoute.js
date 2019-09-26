@@ -1,6 +1,6 @@
 const express = require('express');
 const ModifierRouter = express.Router();
-
+const pg = require('pg');
 const Modifier = require('../../db/models/modifier');
 const Choice = require('../../db/models/modifierChoices');
 const Stepper = require('../../db/models/stepperElement');
@@ -14,6 +14,17 @@ ModifierRouter.route('/:listing_id').get(async function (req, res){
         .then(modifiers => {
             res.json(modifiers)
         })
+});
+
+ModifierRouter.route('/:modifier_id').delete(async function (req,res){
+    let modifier_id = parseInt(req.params.modifier_id)
+    console.log(modifier_id,typeof(modifier_id));
+    try {
+        const count = await Modifier.query().deleteById(modifier_id);
+        res.sendStatus(200)
+    }catch(e){
+        console.log(e);
+    }
 });
 
 ModifierRouter.route('/create').post(async function (req, res) {
@@ -134,5 +145,6 @@ ModifierRouter.route('/create').post(async function (req, res) {
     }
 
 });
+
 
 module.exports = ModifierRouter;

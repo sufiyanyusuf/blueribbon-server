@@ -20,9 +20,9 @@ app.use ('/modifier',modifierRoute);
 app.get('/productInfo/:id', (req, res) => {
     let id = parseInt(req.params.id)
     productInfo.query()
-        .where('id', id)
+        .where('listing_id', id)
         .then(prod => {
-            res.json(prod)
+            res.json(prod[0])
         })
 })
 
