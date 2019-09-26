@@ -1,11 +1,7 @@
 const express = require('express');
 const ModifierRouter = express.Router();
-const pg = require('pg');
 const Modifier = require('../../db/models/modifier');
-const Choice = require('../../db/models/modifierChoices');
-const Stepper = require('../../db/models/stepperElement');
-const TextField = require('../../db/models/textfieldElement');
-const MultiOptions = require('../../db/models/multiOptionsElement');
+
 
 ModifierRouter.route('/:listing_id').get(async function (req, res){
     let listing_id = parseInt(req.params.listing_id)
