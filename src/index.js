@@ -1,6 +1,8 @@
 var express = require('express');
 var port = process.env.PORT || 4000;
+var cors = require('cors');
 var app = express();
+
 const router = express.Router();
 const bodyParser = require('body-parser');
 
@@ -11,6 +13,9 @@ const productInfo = require('../db/models/productInfo')
 const listingRoute = require('./Listing/listingRoute')
 const modifierRoute = require('./Listing/modifierRoute')
 
+app.use(cors({
+	origin: 'https:blue-ribbon-dashboard.herokuapp.com'
+  }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
