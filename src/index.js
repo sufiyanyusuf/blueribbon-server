@@ -14,10 +14,10 @@ const modifierRoute = require('./Listing/modifierRoute')
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use ('/listing',listingRoute);
-app.use ('/modifier',modifierRoute);
+app.use ('/api/listing',listingRoute);
+app.use ('/api/modifier',modifierRoute);
 
-app.get('/productInfo/:id', (req, res) => {
+app.get('/api/productInfo/:id', (req, res) => {
     let id = parseInt(req.params.id)
     productInfo.query()
         .where('listing_id', id)
@@ -26,21 +26,21 @@ app.get('/productInfo/:id', (req, res) => {
         })
 })
 
-app.get('/organizations', (req, res) => {
+app.get('/api/organizations', (req, res) => {
     Organization.query()
         .then(organizations => {
             res.json(organizations)
         })
 })
 
-app.get('/listing', (req, res) => {
+app.get('/api/listing', (req, res) => {
     Listing.query()
         .then(listings => {
             res.json(listings)
         })
 })
 
-app.get('/organizations/listing/:id', (req, res) => {
+app.get('/api/organizations/listing/:id', (req, res) => {
     let id = parseInt(req.params.id)
     Organization.query()
         .where('id', id)
