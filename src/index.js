@@ -13,16 +13,19 @@ const productInfo = require('../db/models/productInfo')
 const listingRoute = require('./Listing/listingRoute')
 const modifierRoute = require('./Listing/modifierRoute')
 
-app.use(cors({
-	origin: 'https:blue-ribbon-dashboard.herokuapp.com'
-  }));
+var corsOptions = {
+	origin: 'https://blue-ribbon-dashboard.herokuapp.com',
+	optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+  }
+
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use ('/api/listing',listingRoute);
-app.use ('/api/modifier',modifierRoute);
+app.use ('/api/listing',cors(corsOptions),listingRoute);
+app.use ('/api/modifier',cors(corsOptions),modifierRoute);
 
-app.get('/api/productInfo/:id', (req, res) => {
+app.get('/api/productInfo/:id', cors(corsOptions), (req, res) => {
     let id = parseInt(req.params.id)
     productInfo.query()
         .where('listing_id', id)
@@ -31,21 +34,21 @@ app.get('/api/productInfo/:id', (req, res) => {
         })
 })
 
-app.get('/api/organizations', (req, res) => {
+app.get('/api/organizations', cors(corsOptions), (req, res) => {
     Organization.query()
         .then(organizations => {
             res.json(organizations)
         })
 })
 
-app.get('/api/listing', (req, res) => {
+app.get('/api/listing', cors(corsOptions), (req, res) => {
     Listing.query()
         .then(listings => {
             res.json(listings)
         })
 })
 
-app.get('/api/organizations/listing/:id', (req, res) => {
+app.get('/api/organizations/listing/:id', cors(corsOptions), (req, res) => {
     let id = parseInt(req.params.id)
     Organization.query()
         .where('id', id)
