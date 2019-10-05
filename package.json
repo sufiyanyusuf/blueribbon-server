@@ -17,7 +17,8 @@
     "knex": "^0.19.4",
     "objection": "^1.6.9",
     "objection-db-errors": "^1.1.1",
-    "pg": "^7.12.1"
+    "pg": "^7.12.1",
+    "response-time": "^2.3.2"
   },
   "devDependencies": {
     "nodemon": "^1.19.2"

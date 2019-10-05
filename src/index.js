@@ -1,7 +1,9 @@
 var express = require('express');
 var port = process.env.PORT || 4000;
 var cors = require('cors');
+var serviceLocations = require('./assets/serviceLocations_uae');
 var app = express();
+var responseTime = require('response-time')
 
 const router = express.Router();
 const bodyParser = require('body-parser');
@@ -14,10 +16,14 @@ const listingRoute = require('./Listing/listingRoute')
 const modifierRoute = require('./Listing/modifierRoute')
 
 var corsOptions = {
-	origin: 'https://blue-ribbon-dashboard.herokuapp.com',
+	// origin: 'https://blue-ribbon-dashboard.herokuapp.com',
+	origin: 'http://localhost:4000',
 	optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
   }
 
+  app.use(responseTime(function (req, res, time) {
+    console.log(time)
+  }))
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -56,6 +62,26 @@ app.get('/api/organizations/listing/:id', cors(corsOptions), (req, res) => {
         .then(org => {
             res.json(org)
         })
+})
+
+app.get('/api/search/serviceAreas/:query', cors(corsOptions), (req, res) => {
+
+    let keywords = req.params.query;
+    console.log(keywords);
+
+    var filtered=serviceLocations.filter(function(item){
+
+        // var name0 = item.properties.NAME_0; //load json for country
+        var name1 = item.properties.NAME_1;
+        var name3 = item.properties.NAME_3;
+        if ((name3 && name3.toLowerCase().includes(keywords.toLowerCase()))
+            ||(name1 && name1.toLowerCase().includes(keywords.toLowerCase()))
+        ){
+            return item
+        }         
+    });
+
+    res.json(filtered);
 })
 
 

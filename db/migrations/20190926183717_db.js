@@ -63,7 +63,7 @@ exports.up = function(knex) {
         Elements_Textfields.increments('id').primary();
         Elements_Textfields.string('placeholder')
         Elements_Textfields.integer('modifier_id').references('id').inTable('Modifiers').onDelete('Cascade');
-    });
+    })
 };
 
 exports.down = function(knex) {
