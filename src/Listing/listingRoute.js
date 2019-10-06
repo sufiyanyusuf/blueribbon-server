@@ -5,10 +5,6 @@ const Listing = require('../../db/models/listing');
 const Organization = require('../../db/models/organization');
 const ProductInfo = require('../../db/models/productInfo');
 
-ListingRouter.route('/updateLocations').put(async function (req, res) {
-   
-})
-
 ListingRouter.route('/updateInfo').put(async function (req, res) {
   const newProdInfo = {title:req.body.title,
     description:req.body.description,

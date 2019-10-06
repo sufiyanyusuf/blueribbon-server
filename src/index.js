@@ -14,6 +14,7 @@ const productInfo = require('../db/models/productInfo')
 
 const listingRoute = require('./Listing/listingRoute')
 const modifierRoute = require('./Listing/modifierRoute')
+const serviceLocationRoute = require('./Listing/serviceLocationRoute')
 
 var corsOptions = {
 	// origin: 'https://blue-ribbon-dashboard.herokuapp.com',
@@ -30,6 +31,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use ('/api/listing',cors(corsOptions),listingRoute);
 app.use ('/api/modifier',cors(corsOptions),modifierRoute);
+app.use ('/api/serviceLocations',cors(corsOptions),serviceLocationRoute);
 
 app.get('/api/productInfo/:id', cors(corsOptions), (req, res) => {
     let id = parseInt(req.params.id)
