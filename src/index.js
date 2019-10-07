@@ -69,9 +69,8 @@ app.get('/api/organizations/listing/:id', cors(corsOptions), (req, res) => {
 app.get('/api/search/serviceAreas/:query', cors(corsOptions), (req, res) => {
 
     let keywords = req.params.query;
-    console.log(keywords);
-
-    var filtered=serviceLocations.filter(function(item){
+  
+    var areas=serviceLocations.filter(function(item){
 
         // var name0 = item.properties.NAME_0; //load json for country
         var name1 = item.properties.NAME_1;
@@ -83,7 +82,38 @@ app.get('/api/search/serviceAreas/:query', cors(corsOptions), (req, res) => {
         }         
     });
 
-    res.json(filtered);
+    const polygons = areas.map((area)=>{
+        return area.geometry.coordinates[0][0]
+    })
+
+    var gPolygonArray = polygons.map (coordinateSet => {
+        return coordinateSet.map(coordinate => {
+            return {lat:coordinate[1],lng:coordinate[0]}
+        })
+    })
+
+    const formattedArray = areas.map((area,index) => {
+        var label = ''
+       
+        if (area.properties.NAME_3){
+            label = area.properties.NAME_3
+        }else if (area.properties.NAME_2){
+            label = area.properties.NAME_2
+        }else{
+            label = area.properties.NAME_1
+        }
+
+        return {
+            label:label,
+            value:area.id,
+            key:area.id,
+            data_id:area.id,
+            polygon:gPolygonArray[index],    
+        }
+    })
+    console.log({areas:formattedArray});
+    res.json ({areas:formattedArray});
+    // res.json(areas);
 })
 
 

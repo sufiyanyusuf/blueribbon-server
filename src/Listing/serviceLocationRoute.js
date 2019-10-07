@@ -22,36 +22,49 @@ ServiceLocationRouter.route('/:listing_id').get(async function (req, res) {
 });
 
 ServiceLocationRouter.route('/update').post(async function (req, res) {
-    console.log(req.body);
 
     const getLocations = () => {
-        if (req.body.areas && req.body.areas.length>0) {
+        if (req.body.areas && req.body.areas.length>0 && req.body.listing_id) {
             const areas = req.body.areas.map((area)=>{
                 const newServiceLocation = {
                     label:area.label,
                     data_id:area.data_id,
                     polygon:{data:area.polygon},
-                    listing_id:area.listing_id
+                    listing_id:req.body.listing_id
                 }; 
                 return newServiceLocation;
             });
             return areas
+        }else{
+            return []
         }
     }
 
     try{
-        const listing_id = getLocations()[0].listing_id
+        if (getLocations().length > 0){
+            
+            const listing_id = getLocations()[0].listing_id
         
-        const numDeleted = await ServiceLocation
-                                        .query()
-                                        .delete()
-                                        .where('listing_id', listing_id);
-
-        const serviceLocation = await ServiceLocation
-                                        .query()
-                                        .insert(getLocations());  
-                                                           
-        res.json(serviceLocation);
+            const numDeleted = await ServiceLocation
+                                            .query()
+                                            .delete()
+                                            .where('listing_id', listing_id);
+    
+            const serviceLocations = await ServiceLocation
+                                            .query()
+                                            .insert(getLocations());  
+                                                               
+            res.json(serviceLocations);
+        }else{
+            if (req.body.listing_id){
+                const numDeleted = await ServiceLocation
+                                            .query()
+                                            .delete()
+                                            .where('listing_id', req.body.listing_id);
+            }
+            res.sendStatus(200)
+        }
+        
 
     }catch(e){
         console.log(e);
