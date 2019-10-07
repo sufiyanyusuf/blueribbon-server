@@ -5,7 +5,6 @@ var serviceLocations = require('./assets/serviceLocations_uae');
 var app = express();
 var responseTime = require('response-time')
 
-const router = express.Router();
 const bodyParser = require('body-parser');
 
 const Organization = require('../db/models/organization')
@@ -16,15 +15,22 @@ const listingRoute = require('./Listing/listingRoute')
 const modifierRoute = require('./Listing/modifierRoute')
 const serviceLocationRoute = require('./Listing/serviceLocationRoute')
 
-var corsOptions = {
-	// origin: 'https://blue-ribbon-dashboard.herokuapp.com',
-	origin: 'http://localhost:4000',
-	optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
-  }
+var whitelist = ['https://blue-ribbon-dashboard.herokuapp.com', 'http://localhost:3000']
 
-  app.use(responseTime(function (req, res, time) {
-    console.log(time)
-  }))
+var corsOptions = {
+    origin: function (origin, callback) {
+        console.log(origin)
+        if (whitelist.indexOf(origin) !== -1) {
+          callback(null, true)
+        } else {
+          callback(new Error('Not allowed by CORS'))
+        }
+    }
+}
+
+//   app.use(responseTime(function (req, res, time) {
+//     console.log(time)
+//   }))
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -66,15 +72,15 @@ app.get('/api/organizations/listing/:id', cors(corsOptions), (req, res) => {
         })
 })
 
-app.get('/api/search/serviceAreas/:query', cors(corsOptions), (req, res) => {
+app.get('/api/search/serviceAreas/:query', cors(corsOptions), async (req, res) => {
 
     let keywords = req.params.query;
   
-    var areas=serviceLocations.filter(function(item){
+    var areas= serviceLocations.filter(function(item){
 
         // var name0 = item.properties.NAME_0; //load json for country
-        var name1 = item.properties.NAME_1;
-        var name3 = item.properties.NAME_3;
+        var name1 = item.properties.NAME_1; //city
+        var name3 = item.properties.NAME_3; //area
         if ((name3 && name3.toLowerCase().includes(keywords.toLowerCase()))
             ||(name1 && name1.toLowerCase().includes(keywords.toLowerCase()))
         ){
@@ -111,7 +117,6 @@ app.get('/api/search/serviceAreas/:query', cors(corsOptions), (req, res) => {
             polygon:gPolygonArray[index],    
         }
     })
-    console.log({areas:formattedArray});
     res.json ({areas:formattedArray});
     // res.json(areas);
 })
