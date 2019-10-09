@@ -10,7 +10,8 @@ ListingRouter.route('/updateInfo').put(async function (req, res) {
     description:req.body.description,
     type:req.body.type,
     base_price:req.body.base_price,
-    currency:req.body.currency
+    currency:req.body.currency,
+    image_url:req.body.image_url
   };
   try{
          
@@ -38,7 +39,8 @@ ListingRouter.route('/create').post(async function (req, res) {
     description:req.body.description,
     type:req.body.type,
     base_price:req.body.base_price,
-    currency:req.body.currency
+    currency:req.body.currency,
+    image_url:req.body.image_url
   };  
 
   try{
