@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "blueribbon",
+  "private_key_id": "e2dd8c9276a667c1d882ff54ad846f80f6342590",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC3luyp5KhTgRCp\nenU0z/4ibbopjD7CKGYTLfQ0rkuyJ9Pw2B4YmUSsza9Uwr+52W/9sgYlghi58dzr\n98Rr3b0K7blY9YQzPAkhOofL/G6/UBeesFjDoKFhfkudu/o+Dyp1axJEM7JhFYYd\nOl3mMqWZl9ZIimvTpI00/DbniDDgLYiVVeXNR4VrWSMSSVuGQSniYvb0nDLhPnMA\nBkMwlpln0wspVNJefMkyk/LRCGvyU/N/SwJB1nwMEYj2VhR5+ssvvhCA++nqlJrW\n0CVbS8Nb6Bn3zV1KrLTEP0fhe7rZEuNH6MKS9t2mWgqKY1QNG1RD0nu2FlpEeOeg\nbsM3uELxAgMBAAECggEATTJ3yoqdIxvKy1D0VuQ8yvJTzOOtggvlvBvfK4W8y6mG\nq6fco+BS6czFdIE9iGL/ffBtODlnt0yV5l01aVwAgUdr4BXA5KBSgHfxoRtA4E5H\n2FDzyjLRmUK3fhiMharv4hbHRAlu8PbRgZnI4SKb0qVvk+oso/515/lEBwCT+LdG\nfJJj1xNufWi8+UjjNPKKf0XBiOGzsNUgi3GbksvO6q6Hv53I4ZOtXl/NjmbPn78f\n9inUBoffF9cHkw6aFWVl7ac2ixgs6BAhH6cNkEmxFuxn2CFR0QcjPsDIoIfh7x0f\n4iXUtDM2E4hNkJfxtF8rlvSvqIaMhJmwPBKqg694fwKBgQDZzFeg3D/ncm32pF8Y\nVbMOmZ3M+fFDDvo05n9xL0wWw8j/3Pdkr+vVHXCjZRvIdzdbYIAKEK9AGjuTOyMQ\ngctiEdY7sbE0NbramG4GtrXN1R2EYnT2y/Yi9u/dReQ4N2g3UhU16xA7zRN+FtJz\nVggS8HcNO1SO5diq2COT5EERawKBgQDXyogluVJdo2L10xEhaMmtVV+3zHCtDTKA\nHbcBc/H6UdSwiEFQM9JBc3pAvMOoMLL7kqHeyTxAOamPi0pzuDPpwBey+VImmzAD\nWFBRlZNxVpBnwKI2QCEMwHLK5/w+PILOHadg4fZNI33qBcaiY0iYyDIEZOpCghsb\n1rxDNRHoEwKBgEdk55iwejY5WXiPOyjz9sUjcAngKMkNoNE0ebQ1h+CyfzH4UhRs\nYocypli5bRkSk0/d2zrxazE9KChEK2Ne2LemFy7sOaVes4iyjOaggAogARQDXkoE\nZAPkJI7JOV2ANCZmPtO04VZpDCm5+3SZT/49Wxk4SKirCZI/VbJGEVpPAoGAKWe8\nLfjcPAlgsKh6Lf3sTK0H+71nlVzl5r1M4yN7N7vB4smSNrBq1JIyz/8oT7pgbXMa\nSiQ0wmIODfP9Ki0bEOwB4B6Ey9GVKd8lMjJQIzwn4zCML3qonMjEffh7Zvm3Y5M/\nDZDt8KkxvNi0323LfT1Uk5FFfdN3HiVa5E5njC8CgYEAl7Rtk/QJY/WpHU+qcIXm\nmUt1nbNQMSUXbRGcsYBGBf6jwqazkFNChoX1kChep98saY1WtSYqIGRMw+efvhxy\nb+KKhOUeR9jRjBZZVW2ZcU3dGs3gyMMUYehwWh/pXDe88er5gGKazFbcrdXzA0Fw\noGjbaShjRv+ZZqGGWxf/VIE=\n-----END PRIVATE KEY-----\n",
+  "client_email": "blueribbon-server@blueribbon.iam.gserviceaccount.com",
+  "client_id": "105023007960514345161",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/blueribbon-server%40blueribbon.iam.gserviceaccount.com"
+}

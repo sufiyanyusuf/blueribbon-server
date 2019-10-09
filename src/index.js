@@ -4,7 +4,7 @@ var cors = require('cors');
 var serviceLocations = require('./assets/serviceLocations_uae');
 var app = express();
 var responseTime = require('response-time')
-
+require('dotenv').config();
 const bodyParser = require('body-parser');
 
 const Organization = require('../db/models/organization')
@@ -14,12 +14,14 @@ const productInfo = require('../db/models/productInfo')
 const listingRoute = require('./Listing/listingRoute')
 const modifierRoute = require('./Listing/modifierRoute')
 const serviceLocationRoute = require('./Listing/serviceLocationRoute')
+const uploadRoute = require('./Listing/uploadRoute')
+
+
 
 var whitelist = ['https://blue-ribbon-dashboard.herokuapp.com', 'http://localhost:3000']
 
 var corsOptions = {
     origin: function (origin, callback) {
-        console.log(origin)
         if (whitelist.indexOf(origin) !== -1) {
           callback(null, true)
         } else {
@@ -38,6 +40,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use ('/api/listing',cors(corsOptions),listingRoute);
 app.use ('/api/modifier',cors(corsOptions),modifierRoute);
 app.use ('/api/serviceLocations',cors(corsOptions),serviceLocationRoute);
+app.use ('/api/upload',cors(corsOptions),uploadRoute);
 
 app.get('/api/productInfo/:id', cors(corsOptions), (req, res) => {
     let id = parseInt(req.params.id)
@@ -123,7 +126,6 @@ app.get('/api/search/serviceAreas/:query', cors(corsOptions), async (req, res) =
 
 
 app.get('/', function (req, res) {
-	console.log(req,res);
  res.send(JSON.stringify({ Hello: 'World'}));
 });
 
