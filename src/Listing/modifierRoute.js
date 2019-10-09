@@ -77,6 +77,7 @@ ModifierRouter.route('/create').post(async function (req, res) {
                     image:choice.image,
                     default_selection:choice.default_selection
                 };
+                console.log(newChoice);
                 return newChoice;
             });
             return choices
