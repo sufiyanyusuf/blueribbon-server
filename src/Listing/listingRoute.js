@@ -1,9 +1,10 @@
 const express = require('express');
 const ListingRouter = express.Router();
-
+const axios = require ('axios');
 const Listing = require('../../db/models/listing');
 const Organization = require('../../db/models/organization');
 const ProductInfo = require('../../db/models/productInfo');
+
 
 ListingRouter.route('/updateInfo').put(async function (req, res) {
   const newProdInfo = {
@@ -55,6 +56,41 @@ ListingRouter.route('/:listing_id/status').get(async function (req, res) {
     }catch(e){
       res.status(400)
     }
+  }
+})
+
+ListingRouter.route('/:listing_id/deepLink').get(async function (req, res) {
+  const listingId = req.params.listing_id
+
+  if (listingId){
+
+    try{
+      const firebaseKey = process.env.FIREBASE_KEY
+      const endpoint = 'https://firebasedynamiclinks.googleapis.com/v1/shortLinks?key='+firebaseKey
+
+      axios.post(endpoint,{
+        "dynamicLinkInfo": {
+          "domainUriPrefix": "https://links.blueribbon.io",
+          "link": "https://links.blueribbon.io/listing/"+listingId,
+          "androidInfo": {
+            "androidPackageName": "com.blueribbon.wallet"
+          },
+          "iosInfo": {
+            "iosBundleId": "com.blueribbon.wallet"
+          }
+        }
+      }).then(response => {
+        if (response.data.shortLink){
+          res.json(response.data.shortLink)
+        }
+      }).catch(error => {
+        res.json(error)
+      })
+
+    }catch(e){
+      res.status(400)
+    }
+    
   }
 })
 
