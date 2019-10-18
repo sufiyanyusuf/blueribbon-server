@@ -18,7 +18,7 @@ const uploadRoute = require('./Listing/uploadRoute')
 
 
 
-var whitelist = ['https://blue-ribbon-dashboard.herokuapp.com', 'http://localhost:3000']
+var whitelist = ['https://blue-ribbon-dashboard.herokuapp.com', 'https://localhost:3000']
 
 var corsOptions = {
     origin: function (origin, callback) {
@@ -37,7 +37,7 @@ var corsOptions = {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use ('/api/listing',cors(corsOptions),listingRoute);
+app.use ('/api/listing',listingRoute);
 app.use ('/api/modifier',cors(corsOptions),modifierRoute);
 app.use ('/api/serviceLocations',cors(corsOptions),serviceLocationRoute);
 app.use ('/api/upload',cors(corsOptions),uploadRoute);

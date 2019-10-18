@@ -122,6 +122,24 @@ ListingRouter.route('/create').post(async function (req, res) {
     console.error(e);
   }
 
-});
+})
+
+ListingRouter.route('/:listing_id/').get(async function(req, res){
+  
+  try{
+    if (req.params.listing_id){
+      const listing = await Listing
+      .query()
+      .findById(req.params.listing_id)
+      .eager('productInfo')
+      .eager('modifier.[stepper,textField,multiOption,choice]')
+     
+      res.json(listing)
+    }
+    
+  }catch(e){
+    console.log(e)
+  }
+})
 
 module.exports = ListingRouter;

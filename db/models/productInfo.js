@@ -14,12 +14,12 @@ class ProductInfo extends Model {
 
     return{
         listing:{
-            relation: Model.BelongsToOneRelation,
-            modelClass:listings,
-            join:{
-                from : 'productInfo.listing_id',
-                to : 'listing.id'
-            }
+          relation: Model.BelongsToOneRelation,
+          modelClass:listings,
+          join:{
+              from : 'productInfo.listing_id',
+              to : 'listing.id'
+          }
         }
     }
   }

@@ -93,6 +93,7 @@ ModifierRouter.route('/create').post(async function (req, res) {
                 price_multiplier:req.body.price_multiplier,
                 unit_title:req.body.unit_title
             };
+           
             return newStepper;
         }
     }

@@ -11,6 +11,8 @@ class Listing extends Model {
   static get relationMappings() {
     
     const productInfo = require('./productInfo');
+    const modifer = require('./modifier');
+    
     return{
         productInfo:{
           relation:Model.HasOneRelation,
@@ -18,6 +20,14 @@ class Listing extends Model {
           join:{
             from:'Listings.id',
             to:'ProductInfo.listing_id'
+          }
+        },
+        modifier:{
+          relation:Model.HasManyRelation,
+          modelClass:modifer,
+          join:{
+            from:'Listings.id',
+            to:'Modifiers.listing_id'
           }
         }
 
