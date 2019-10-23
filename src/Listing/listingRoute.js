@@ -131,15 +131,15 @@ ListingRouter.route('/:listing_id/').get(async function(req, res){
       const listing = await Listing
       .query()
       .findById(req.params.listing_id)
-      .eager('productInfo')
-      .eager('modifier.[stepper,textField,multiOption,choice]')
+      .eager('[productInfo,modifier.[stepper,textField,multiOption,choice]]')
      
-      res.json(listing)
+      res.status(200).json(listing)
     }
     
   }catch(e){
-    console.log(e)
+    res.status(400).json(e)
   }
+
 })
 
 module.exports = ListingRouter;

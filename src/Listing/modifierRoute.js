@@ -86,6 +86,7 @@ ModifierRouter.route('/create').post(async function (req, res) {
 
     const getStepper = () => {
         if (req.body.element_type == 'Stepper') {
+            
             const newStepper = {
                 max_value:req.body.maxValue,
                 min_value:req.body.minValue,

@@ -1,9 +1,49 @@
 const express = require('express');
 const ServiceLocationRouter = express.Router();
 
+const turf = require('@turf/turf')
+const { point,polygon } = require('@turf/helpers');
+
 const ServiceLocation = require('../../db/models/serviceLocation');
 
+ServiceLocationRouter.route('/:listing_id/verifyCoordinates').get(async function (req, res) {
+    let listing_id = parseInt(req.params.listing_id)
+    var pt = point([req.body.lat, req.body.long]);
+
+    try{
+
+        const areas = await ServiceLocation
+                                        .query()
+                                        .where('listing_id', listing_id);
+                     
+                                      
+        areas.map((area,index) =>{
+
+            if (area.polygon.data){
+
+                const polygonData = area.polygon.data
+                const _polygon = polygonData.map((coordinate) => {
+                    return [coordinate.lat,coordinate.lng]
+                })
+
+                var poly = polygon([_polygon]);
+                if (turf.booleanPointInPolygon(pt, poly)){
+                    res.json({'status':true,'attempt':index})
+                }
+            }
+        })
+
+        res.json({'status':false})
+
+    }catch(e){
+        res.json(e);
+    }
+
+
+});
+
 ServiceLocationRouter.route('/:listing_id').get(async function (req, res) {
+
     let listing_id = parseInt(req.params.listing_id)
     console.log(listing_id);
     try{
@@ -21,7 +61,7 @@ ServiceLocationRouter.route('/:listing_id').get(async function (req, res) {
 
 });
 
-ServiceLocationRouter.route('/update').post(async function (req, res) {
+ServiceLocationRouter.route('/update').post ( async function (req, res) {
 
     const getLocations = () => {
         if (req.body.areas && req.body.areas.length>0 && req.body.listing_id) {
@@ -72,5 +112,7 @@ ServiceLocationRouter.route('/update').post(async function (req, res) {
     }
 
 });
+
+
 
 module.exports = ServiceLocationRouter;

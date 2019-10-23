@@ -17,8 +17,7 @@ const serviceLocationRoute = require('./Listing/serviceLocationRoute')
 const uploadRoute = require('./Listing/uploadRoute')
 
 
-
-var whitelist = ['https://blue-ribbon-dashboard.herokuapp.com', 'https://localhost:3000']
+var whitelist = ['https://blue-ribbon-dashboard.herokuapp.com', 'http://localhost:3000']
 
 var corsOptions = {
     origin: function (origin, callback) {
@@ -38,8 +37,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use ('/api/listing',listingRoute);
+app.use ('/api/serviceLocations',serviceLocationRoute);
 app.use ('/api/modifier',cors(corsOptions),modifierRoute);
-app.use ('/api/serviceLocations',cors(corsOptions),serviceLocationRoute);
 app.use ('/api/upload',cors(corsOptions),uploadRoute);
 
 app.get('/api/productInfo/:id', cors(corsOptions), (req, res) => {
@@ -65,7 +64,7 @@ app.get('/api/listing', cors(corsOptions), (req, res) => {
         })
 })
 
-app.get('/api/organizations/listing/:id', cors(corsOptions), (req, res) => {
+app.get('/api/organizations/listing/:id', cors(corsOptions), async (req, res) => {
     let id = parseInt(req.params.id)
     Organization.query()
         .where('id', id)
@@ -125,10 +124,11 @@ app.get('/api/search/serviceAreas/:query', cors(corsOptions), async (req, res) =
 })
 
 
+
 app.get('/', function (req, res) {
- res.send(JSON.stringify({ Hello: 'World'}));
+    res.send(JSON.stringify({ Hello: 'World'}));
 });
 
 app.listen(port, function () {
- console.log('Example app listening on port !',port);
+    console.log('Example app listening on port !',port);
 });
