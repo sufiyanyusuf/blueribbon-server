@@ -23,7 +23,8 @@
     "objection": "^1.6.9",
     "objection-db-errors": "^1.1.1",
     "pg": "^7.12.1",
-    "response-time": "^2.3.2"
+    "response-time": "^2.3.2",
+    "stripe": "^7.10.0"
   },
   "devDependencies": {
     "nodemon": "^1.19.2"

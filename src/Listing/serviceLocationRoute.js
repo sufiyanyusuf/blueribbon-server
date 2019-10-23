@@ -30,7 +30,9 @@ ServiceLocationRouter.route('/:listing_id/verifyCoordinates').get(async function
                 if (turf.booleanPointInPolygon(pt, poly)){
                     res.json({'status':true,'attempt':index})
                 }
+
             }
+
         })
 
         res.json({'status':false})

@@ -15,6 +15,7 @@ const listingRoute = require('./Listing/listingRoute')
 const modifierRoute = require('./Listing/modifierRoute')
 const serviceLocationRoute = require('./Listing/serviceLocationRoute')
 const uploadRoute = require('./Listing/uploadRoute')
+const paymentRoute = require('./PaymentRoute')
 
 
 var whitelist = ['https://blue-ribbon-dashboard.herokuapp.com', 'http://localhost:3000']
@@ -38,6 +39,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use ('/api/listing',listingRoute);
 app.use ('/api/serviceLocations',serviceLocationRoute);
+app.use ('/api/payment',paymentRoute);
 app.use ('/api/modifier',cors(corsOptions),modifierRoute);
 app.use ('/api/upload',cors(corsOptions),uploadRoute);
 
