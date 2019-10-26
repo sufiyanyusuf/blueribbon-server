@@ -55,7 +55,6 @@ PaymentRouter.route('/customer/cards').post(async (req, res) => {
 PaymentRouter.route('/new/charge').post(async (req, res) => {
 
   // console.log(req.body.amount, req.body.tokenId, req.body.customerId);
-
     return stripe.charges
     .create({
       amount: req.body.amount, // Unit: cents
@@ -66,8 +65,23 @@ PaymentRouter.route('/new/charge').post(async (req, res) => {
     })
     .then(result => res.status(200).json(result));
 
+});
 
-  
+PaymentRouter.route('/new/applePay').post(async (req, res) => {
+
+  // console.log(req.body.amount, req.body.tokenId);
+
+    // console.log(req);
+
+    return stripe.charges
+    .create({
+      amount: req.body.amount, // Unit: cents
+      currency: 'aed',
+      source: req.body.tokenId,
+      description: 'Test payment',
+    })
+    .then(result => res.status(200).json(result));
+
 });
 
 

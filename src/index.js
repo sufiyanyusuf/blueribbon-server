@@ -16,6 +16,7 @@ const modifierRoute = require('./Listing/modifierRoute')
 const serviceLocationRoute = require('./Listing/serviceLocationRoute')
 const uploadRoute = require('./Listing/uploadRoute')
 const paymentRoute = require('./PaymentRoute')
+const userRoute = require('./userRoute')
 
 
 var whitelist = ['https://blue-ribbon-dashboard.herokuapp.com', 'http://localhost:3000']
@@ -30,9 +31,9 @@ var corsOptions = {
     }
 }
 
-//   app.use(responseTime(function (req, res, time) {
-//     console.log(time)
-//   }))
+  app.use(responseTime(function (req, res, time) {
+    console.log(time)
+  }))
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -42,6 +43,9 @@ app.use ('/api/serviceLocations',serviceLocationRoute);
 app.use ('/api/payment',paymentRoute);
 app.use ('/api/modifier',cors(corsOptions),modifierRoute);
 app.use ('/api/upload',cors(corsOptions),uploadRoute);
+
+app.use('/api/user',userRoute);
+
 
 app.get('/api/productInfo/:id', cors(corsOptions), (req, res) => {
     let id = parseInt(req.params.id)
@@ -124,12 +128,6 @@ app.get('/api/search/serviceAreas/:query', cors(corsOptions), async (req, res) =
     res.json ({areas:formattedArray});
     // res.json(areas);
 })
-
-
-
-app.get('/', function (req, res) {
-    res.send(JSON.stringify({ Hello: 'World'}));
-});
 
 app.listen(port, function () {
     console.log('Example app listening on port !',port);
