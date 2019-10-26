@@ -54,7 +54,6 @@ const verifyLocalProfile = async (id) => {
 
 UserRouter.route('/verifyUser/:id').get(async (req,res) => {
     
-    //check if auth0 user
     const id = req.params.id;
     getAccessToken.then(token=>{
         return token 
