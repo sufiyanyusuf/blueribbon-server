@@ -43,6 +43,7 @@ const verifyLocalProfile = async (id) => {
         try {
             const user = await User.query()
             .where('user_id',id)
+            console.log(user,id)
             if (user.length == 0){
                 resolve(false);
             }else{
@@ -58,7 +59,7 @@ const createLocalProfile = async (user_id) => {
     return new Promise (async (resolve, reject) => {
         try {
             const user = await User.query().insert({
-                "user_id":user_id
+                "user_id":decodeURIComponent(user_id)
             });
             resolve(true);
         }catch (e){
@@ -150,12 +151,6 @@ UserRouter.route('/updateInfo').post(async (req,res) => {
     })
 
 })
-
-
-
-
-
-
 
 UserRouter.route('/updateLocations/:id').post(async (req,res) => {
 
