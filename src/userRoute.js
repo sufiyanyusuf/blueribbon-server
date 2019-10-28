@@ -21,7 +21,7 @@ const getAccessToken = new Promise (async (resolve, reject) => {
     })
 })
 
-const verifyAuth0User = async (id, token)=> {
+const verifyAuth0Profile = async (id, token)=> {
     return new Promise ((resolve, reject) => {
 
         var config = {
@@ -43,17 +43,23 @@ const verifyLocalProfile = async (id) => {
         try {
             const user = await User.query()
             .where('user_id',id)
-            resolve(user);
+            if (user.length == 0){
+                resolve(false);
+            }else{
+                resolve(true);
+            }
         }catch (e){
             reject (e.error);
         }
     })
 }
 
-const createProfile = async (params) => {
+const createLocalProfile = async (user_id) => {
     return new Promise (async (resolve, reject) => {
         try {
-            const user = await User.query().insert(params);
+            const user = await User.query().insert({
+                "user_id":user_id
+            });
             resolve(true);
         }catch (e){
             reject (e.error);
@@ -61,20 +67,7 @@ const createProfile = async (params) => {
     })
 }
 
-const updateProfile = async (params) => {
-
-    return new Promise (async (resolve, reject) => {
-        try {
-            const user = await User.query().where('user_id',id).patch(params);
-            resolve(true);
-        }catch (e){
-            console.log('update loc profile - ',e.error)
-            reject (e.error);
-        }
-    })
-}
-
-const updateUserAuth0Profile =  async (token, params) => {
+const updateAuth0UserProfile =  async (token, params) => {
 
     return new Promise ((resolve, reject) => {
         var config = {
@@ -87,6 +80,7 @@ const updateUserAuth0Profile =  async (token, params) => {
             "name":(params.first_name + ' ' +params.last_name),
             "user_metadata":{'birthday':params.birthday, "phone_number":params.phone_number }
         },config).then(response =>{
+
             resolve(response.data)
         }).catch(error => {
             reject(error)
@@ -95,6 +89,21 @@ const updateUserAuth0Profile =  async (token, params) => {
 
 }
 
+const getAuth0UserProfile =  async (token, params) => {
+
+    return new Promise ((resolve, reject) => {
+        var config = {
+            headers: {'Authorization': "bearer " + token}
+        };
+    
+        axios.get("https://blue-ribbon.auth0.com/api/v2/users/"+params.user_id,config).then(response =>{
+            resolve(response.data)
+        }).catch(error => {
+            reject(error)
+        })
+    })
+
+}
 
 UserRouter.route('/verifyUser/:id').get(async (req,res) => {
     
@@ -102,14 +111,14 @@ UserRouter.route('/verifyUser/:id').get(async (req,res) => {
     getAccessToken.then(token=>{
         return token 
     }).then((token)=>{
-        return verifyAuth0User(id,token)
+        return verifyAuth0Profile(id,token)
     }).then((user_id)=>{
         return verifyLocalProfile(id);
-    }).then(response => {
-        if (response.length == 0){
-            res.status(200).json({status:'new user'})
-        }else{
+    }).then(status => {
+        if (status == true){
             res.status(200).json({status:'existing user'})
+        }else{
+            res.status(200).json({status:'new user'})
         }
     }).catch(e=>{
         res.status(400).json(e);
@@ -118,22 +127,35 @@ UserRouter.route('/verifyUser/:id').get(async (req,res) => {
 })
 
 UserRouter.route('/updateInfo').post(async (req,res) => {
-   
+   console.log('req')
+
     getAccessToken.then(token=>{
         return token 
     }).then((token)=>{
-        return updateUserAuth0Profile(token,req.body)
+        return updateAuth0UserProfile(token,req.body)
     }).then(response => {
-        return (updateProfile({
-            user_id:req.body.id,
-            new_user:false
-        }))
-    }).then(response =>{
-        res.status(200).json(response);
+        return verifyLocalProfile(req.body.user_id)
+    }).then(response => {
+        if (response == false){
+            createLocalProfile(req.body.user_id).then(response => {
+                res.status(200).json(true);
+            }).catch(e => {
+                res.status(400).json(e);
+            })
+        }else{
+            res.status(200).json(true);
+        }
     }).catch(e=>{
         res.status(400).json(e);
     })
+
 })
+
+
+
+
+
+
 
 UserRouter.route('/updateLocations/:id').post(async (req,res) => {
 
