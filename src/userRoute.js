@@ -15,10 +15,8 @@ const getAccessToken = new Promise (async (resolve, reject) => {
 
         accessToken = response.data.access_token;
         resolve(accessToken)
-        // return accessToken
 
     }).catch(error => {
-        console.log(error)
         reject(error)
     })
 })
@@ -52,6 +50,52 @@ const verifyLocalProfile = async (id) => {
     })
 }
 
+const createProfile = async (params) => {
+    return new Promise (async (resolve, reject) => {
+        try {
+            const user = await User.query().insert(params);
+            resolve(true);
+        }catch (e){
+            reject (e.error);
+        }
+    })
+}
+
+const updateProfile = async (params) => {
+
+    return new Promise (async (resolve, reject) => {
+        try {
+            const user = await User.query().where('user_id',id).patch(params);
+            resolve(true);
+        }catch (e){
+            console.log('update loc profile - ',e.error)
+            reject (e.error);
+        }
+    })
+}
+
+const updateUserAuth0Profile =  async (token, params) => {
+
+    return new Promise ((resolve, reject) => {
+        var config = {
+            headers: {'Authorization': "bearer " + token}
+        };
+    
+        axios.patch("https://blue-ribbon.auth0.com/api/v2/users/"+params.user_id,{
+            "given_name":params.first_name,
+            "family_name":params.last_name,
+            "name":(params.first_name + ' ' +params.last_name),
+            "user_metadata":{'birthday':params.birthday, "phone_number":params.phone_number }
+        },config).then(response =>{
+            resolve(response.data)
+        }).catch(error => {
+            reject(error)
+        })
+    })
+
+}
+
+
 UserRouter.route('/verifyUser/:id').get(async (req,res) => {
     
     const id = req.params.id;
@@ -72,5 +116,28 @@ UserRouter.route('/verifyUser/:id').get(async (req,res) => {
     })
  
 })
+
+UserRouter.route('/updateInfo').post(async (req,res) => {
+   
+    getAccessToken.then(token=>{
+        return token 
+    }).then((token)=>{
+        return updateUserAuth0Profile(token,req.body)
+    }).then(response => {
+        return (updateProfile({
+            user_id:req.body.id,
+            new_user:false
+        }))
+    }).then(response =>{
+        res.status(200).json(response);
+    }).catch(e=>{
+        res.status(400).json(e);
+    })
+})
+
+UserRouter.route('/updateLocations/:id').post(async (req,res) => {
+
+})
+
 
 module.exports = UserRouter;
