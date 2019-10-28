@@ -3,6 +3,8 @@ const UserRouter = express.Router();
 const axios = require ('axios');
 
 const User = require('../db/models/user');
+const UserAddress = require('../db/models/userAddress');
+const { raw } = require('objection');
 
 const getAccessToken = new Promise (async (resolve, reject) => {
 
@@ -106,6 +108,26 @@ const getAuth0UserProfile =  async (token, params) => {
 
 }
 
+const addUserLocation = async (req) => {
+    return new Promise (async (resolve, reject) => {
+        try {
+            console.log(req, parseFloat(req.latitude), parseFloat(req.longitude))
+            const userAddress = await UserAddress.query()
+                .insert({
+                    "user_id":decodeURIComponent(req.user_id),
+                    "complete_address":req.complete_address,
+                    "coordinates": raw('point('+ parseFloat(req.latitude)+','+parseFloat(req.longitude)+')') ,
+                    "tag":req.tag
+                });
+            resolve(userAddress);
+        }catch (e){
+            console.log(e);
+            reject (e.error);
+        }
+    })
+}
+
+
 UserRouter.route('/verifyUser/:id').get(async (req,res) => {
     
     const id = req.params.id;
@@ -152,8 +174,18 @@ UserRouter.route('/updateInfo').post(async (req,res) => {
 
 })
 
-UserRouter.route('/updateLocations/:id').post(async (req,res) => {
-
+UserRouter.route('/addLocation').post(async (req,res) => {
+    getAccessToken.then(token=>{
+        return token 
+    }).then((token)=>{
+        return verifyAuth0Profile(req.body.user_id,token)
+    }).then((user)=>{
+        return addUserLocation(req.body)
+    }).then((user)=>{
+        res.status(200).json(user)
+    }).catch(e=>{
+        res.status(400).json(e)
+    })
 })
 
 
