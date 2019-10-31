@@ -19,6 +19,24 @@ const paymentRoute = require('./PaymentRoute')
 const userRoute = require('./userRoute')
 
 
+var jwt = require('express-jwt');
+var jwks = require('jwks-rsa');
+
+var jwtCheck = jwt({
+    secret: jwks.expressJwtSecret({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 5,
+        jwksUri: 'https://blue-ribbon.auth0.com/.well-known/jwks.json'
+  }),
+  audience: 'https://blueribbon.io/api/user',
+  issuer: 'https://blue-ribbon.auth0.com/',
+  algorithms: ['RS256']
+});
+
+app.use(jwtCheck);
+
+
 var whitelist = ['https://blue-ribbon-dashboard.herokuapp.com', 'http://localhost:3000']
 
 var corsOptions = {
@@ -35,6 +53,8 @@ var corsOptions = {
     console.log(time)
   }))
 
+
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -45,6 +65,7 @@ app.use ('/api/modifier',cors(corsOptions),modifierRoute);
 app.use ('/api/upload',cors(corsOptions),uploadRoute);
 
 app.use('/api/user',userRoute);
+
 
 
 app.get('/api/productInfo/:id', cors(corsOptions), (req, res) => {

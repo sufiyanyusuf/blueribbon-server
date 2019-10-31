@@ -6,6 +6,9 @@ const User = require('../db/models/user');
 const UserAddress = require('../db/models/userAddress');
 const { raw } = require('objection');
 
+
+
+
 const getAccessToken = new Promise (async (resolve, reject) => {
 
     axios.post('https://blue-ribbon.auth0.com/oauth/token',{
@@ -83,7 +86,7 @@ const updateAuth0UserProfile =  async (token, params) => {
             "name":(params.first_name + ' ' +params.last_name),
             "user_metadata":{'birthday':params.birthday, "phone_number":params.phone_number }
         },config).then(response =>{
-
+            console.log(response.data)
             resolve(response.data)
         }).catch(error => {
             reject(error)
@@ -127,6 +130,23 @@ const addUserLocation = async (req) => {
     })
 }
 
+// UserRouter.route('/test').get(async (req,res) => {
+//     res.status(200).json(req.headers.authorization)
+// })
+const getUserId = async (accessToken) => {
+    return new Promise (async (resolve, reject) => {
+        var config = {
+            headers: {'Authorization': "bearer " + accessToken}
+        };
+        axios.get("https://blue-ribbon.auth0.com/userinfo",config).then(response =>{
+            resolve(response.data.sub)
+        }).catch(error => {
+            reject(error)
+        })
+
+    })
+}
+
 
 UserRouter.route('/verifyUser/:id').get(async (req,res) => {
     
@@ -139,7 +159,7 @@ UserRouter.route('/verifyUser/:id').get(async (req,res) => {
         return verifyLocalProfile(id);
     }).then(status => {
         if (status == true){
-            res.status(200).json({status:'existing user'})
+            res.status(200).json({new_user:'existing user'})
         }else{
             res.status(200).json({status:'new user'})
         }
@@ -150,7 +170,6 @@ UserRouter.route('/verifyUser/:id').get(async (req,res) => {
 })
 
 UserRouter.route('/updateInfo').post(async (req,res) => {
-   console.log('req')
 
     getAccessToken.then(token=>{
         return token 
@@ -186,6 +205,10 @@ UserRouter.route('/addLocation').post(async (req,res) => {
     }).catch(e=>{
         res.status(400).json(e)
     })
+})
+
+UserRouter.route('/test').get(async (req,res) => {
+    console.log(req.user)
 })
 
 
