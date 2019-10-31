@@ -26,29 +26,13 @@ const getAccessToken = new Promise (async (resolve, reject) => {
     })
 })
 
-const verifyAuth0Profile = async (id, token)=> {
-    return new Promise ((resolve, reject) => {
 
-        var config = {
-            headers: {'Authorization': "bearer " + token}
-        };
-
-        axios.get('https://blue-ribbon.auth0.com/api/v2/users/' + id,config)
-            .then(response => {
-                resolve(response.data.user_id)
-            }).catch (e => {
-                reject(e.response.data)
-            })
-
-    })
-}
 
 const verifyLocalProfile = async (id) => {
     return new Promise (async (resolve, reject) => {
         try {
             const user = await User.query()
             .where('user_id',id)
-            console.log(user,id)
             if (user.length == 0){
                 resolve(false);
             }else{
@@ -73,20 +57,22 @@ const createLocalProfile = async (user_id) => {
     })
 }
 
-const updateAuth0UserProfile =  async (token, params) => {
+const updateAuth0UserProfile =  async (token, req) => {
 
+    const userId = req.user.sub
+    const params = req.body
+    
     return new Promise ((resolve, reject) => {
         var config = {
             headers: {'Authorization': "bearer " + token}
         };
     
-        axios.patch("https://blue-ribbon.auth0.com/api/v2/users/"+params.user_id,{
+        axios.patch("https://blue-ribbon.auth0.com/api/v2/users/"+userId,{
             "given_name":params.first_name,
             "family_name":params.last_name,
             "name":(params.first_name + ' ' +params.last_name),
             "user_metadata":{'birthday':params.birthday, "phone_number":params.phone_number }
         },config).then(response =>{
-            console.log(response.data)
             resolve(response.data)
         }).catch(error => {
             reject(error)
@@ -111,75 +97,36 @@ const getAuth0UserProfile =  async (token, params) => {
 
 }
 
-const addUserLocation = async (req) => {
+const addUserLocation = async (userId, req) => {
     return new Promise (async (resolve, reject) => {
         try {
-            console.log(req, parseFloat(req.latitude), parseFloat(req.longitude))
             const userAddress = await UserAddress.query()
                 .insert({
-                    "user_id":decodeURIComponent(req.user_id),
+                    "user_id":userId,
                     "complete_address":req.complete_address,
                     "coordinates": raw('point('+ parseFloat(req.latitude)+','+parseFloat(req.longitude)+')') ,
                     "tag":req.tag
                 });
             resolve(userAddress);
         }catch (e){
-            console.log(e);
             reject (e.error);
         }
     })
 }
 
-// UserRouter.route('/test').get(async (req,res) => {
-//     res.status(200).json(req.headers.authorization)
-// })
-const getUserId = async (accessToken) => {
-    return new Promise (async (resolve, reject) => {
-        var config = {
-            headers: {'Authorization': "bearer " + accessToken}
-        };
-        axios.get("https://blue-ribbon.auth0.com/userinfo",config).then(response =>{
-            resolve(response.data.sub)
-        }).catch(error => {
-            reject(error)
-        })
 
-    })
-}
-
-
-UserRouter.route('/verifyUser/:id').get(async (req,res) => {
-    
-    const id = req.params.id;
-    getAccessToken.then(token=>{
-        return token 
-    }).then((token)=>{
-        return verifyAuth0Profile(id,token)
-    }).then((user_id)=>{
-        return verifyLocalProfile(id);
-    }).then(status => {
-        if (status == true){
-            res.status(200).json({new_user:'existing user'})
-        }else{
-            res.status(200).json({status:'new user'})
-        }
-    }).catch(e=>{
-        res.status(400).json(e);
-    })
- 
-})
 
 UserRouter.route('/updateInfo').post(async (req,res) => {
 
     getAccessToken.then(token=>{
         return token 
     }).then((token)=>{
-        return updateAuth0UserProfile(token,req.body)
+        return updateAuth0UserProfile(token,req)
     }).then(response => {
-        return verifyLocalProfile(req.body.user_id)
+        return verifyLocalProfile(req.user.sub)
     }).then(response => {
         if (response == false){
-            createLocalProfile(req.body.user_id).then(response => {
+            createLocalProfile(req.user.sub).then(response => {
                 res.status(200).json(true);
             }).catch(e => {
                 res.status(400).json(e);
@@ -194,21 +141,19 @@ UserRouter.route('/updateInfo').post(async (req,res) => {
 })
 
 UserRouter.route('/addLocation').post(async (req,res) => {
-    getAccessToken.then(token=>{
-        return token 
-    }).then((token)=>{
-        return verifyAuth0Profile(req.body.user_id,token)
-    }).then((user)=>{
-        return addUserLocation(req.body)
-    }).then((user)=>{
-        res.status(200).json(user)
-    }).catch(e=>{
-        res.status(400).json(e)
-    })
+
+    if (req.user.sub){
+        addUserLocation(req.user.sub, req.body)
+        .then((user)=>{
+            res.status(200).json(user)
+        }).catch(e=>{
+            res.status(400).json(e)
+        })
+    }
 })
 
 UserRouter.route('/test').get(async (req,res) => {
-    console.log(req.user)
+    console.log(req.user.sub)
 })
 
 

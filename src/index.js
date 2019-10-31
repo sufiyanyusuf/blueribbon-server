@@ -34,6 +34,8 @@ var jwtCheck = jwt({
   algorithms: ['RS256']
 });
 
+
+
 app.use(jwtCheck);
 
 
