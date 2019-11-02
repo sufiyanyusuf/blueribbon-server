@@ -36,7 +36,7 @@ var jwtCheck = jwt({
 
 
 
-app.use(jwtCheck);
+// app.use(jwtCheck);
 
 
 var whitelist = ['https://blue-ribbon-dashboard.herokuapp.com', 'http://localhost:3000']
@@ -62,11 +62,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use ('/api/listing',listingRoute);
 app.use ('/api/serviceLocations',serviceLocationRoute);
-app.use ('/api/payment',paymentRoute);
+app.use ('/api/payment',jwtCheck,paymentRoute);
 app.use ('/api/modifier',cors(corsOptions),modifierRoute);
 app.use ('/api/upload',cors(corsOptions),uploadRoute);
 
-app.use('/api/user',userRoute);
+app.use('/api/user', jwtCheck, userRoute);
 
 
 

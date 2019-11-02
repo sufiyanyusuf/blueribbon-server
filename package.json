@@ -26,8 +26,10 @@
     "objection": "^1.6.9",
     "objection-db-errors": "^1.1.1",
     "pg": "^7.12.1",
+    "pluralize": "^8.0.0",
     "response-time": "^2.3.2",
-    "stripe": "^7.10.0"
+    "stripe": "^7.10.0",
+    "uuid": "^3.3.3"
   },
   "devDependencies": {
     "nodemon": "^1.19.2"

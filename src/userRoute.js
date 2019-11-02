@@ -4,9 +4,8 @@ const axios = require ('axios');
 
 const User = require('../db/models/user');
 const UserAddress = require('../db/models/userAddress');
+const Subscriptions = require('../db/models/subscription');
 const { raw } = require('objection');
-
-
 
 
 const getAccessToken = new Promise (async (resolve, reject) => {
@@ -51,6 +50,19 @@ const createLocalProfile = async (user_id) => {
                 "user_id":decodeURIComponent(user_id)
             });
             resolve(true);
+        }catch (e){
+            reject (e.error);
+        }
+    })
+}
+
+const getUserSubscriptions = async (user_id) => {
+    return new Promise (async (resolve, reject) => {
+        try {
+            const subscriptions = await Subscriptions.query().where({
+                "user_id":decodeURIComponent(user_id)
+            });
+            resolve(subscriptions);
         }catch (e){
             reject (e.error);
         }
@@ -154,6 +166,15 @@ UserRouter.route('/addLocation').post(async (req,res) => {
 
 UserRouter.route('/test').get(async (req,res) => {
     console.log(req.user.sub)
+})
+
+UserRouter.route('/subscriptions').get(async (req,res) => {
+    getUserSubscriptions(res.user.sub)
+        .then ((subscriptions) =>{
+            res.status(200).json(subscriptions)
+        }).catch(e => {
+            res.status(400).json(e)
+        })
 })
 
 
