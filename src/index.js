@@ -39,38 +39,26 @@ var jwtCheck = jwt({
 // app.use(jwtCheck);
 
 
-var whitelist = ['https://blue-ribbon-dashboard.herokuapp.com', 'http://localhost:3000']
-
-var corsOptions = {
-    origin: function (origin, callback) {
-        if (whitelist.indexOf(origin) !== -1) {
-          callback(null, true)
-        } else {
-          callback(new Error('Not allowed by CORS'))
-        }
-    }
-}
-
   app.use(responseTime(function (req, res, time) {
     console.log(time)
   }))
 
 
-
+app.use(cors())
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use ('/api/listing',listingRoute);
 app.use ('/api/serviceLocations',serviceLocationRoute);
 app.use ('/api/payment',jwtCheck,paymentRoute);
-app.use ('/api/modifier',cors(corsOptions),modifierRoute);
-app.use ('/api/upload',cors(corsOptions),uploadRoute);
+app.use ('/api/modifier',modifierRoute);
+app.use ('/api/upload',uploadRoute);
 
 app.use('/api/user', jwtCheck, userRoute);
 
 
 
-app.get('/api/productInfo/:id', cors(corsOptions), (req, res) => {
+app.get('/api/productInfo/:id', (req, res) => {
     let id = parseInt(req.params.id)
     productInfo.query()
         .where('listing_id', id)
@@ -79,21 +67,21 @@ app.get('/api/productInfo/:id', cors(corsOptions), (req, res) => {
         })
 })
 
-app.get('/api/organizations', cors(corsOptions), (req, res) => {
+app.get('/api/organizations', (req, res) => {
     Organization.query()
         .then(organizations => {
             res.json(organizations)
         })
 })
 
-app.get('/api/listing', cors(corsOptions), (req, res) => {
+app.get('/api/listing', (req, res) => {
     Listing.query()
         .then(listings => {
             res.json(listings)
         })
 })
 
-app.get('/api/organizations/listing/:id', cors(corsOptions), async (req, res) => {
+app.get('/api/organizations/listing/:id', async (req, res) => {
     let id = parseInt(req.params.id)
     Organization.query()
         .where('id', id)
@@ -103,7 +91,7 @@ app.get('/api/organizations/listing/:id', cors(corsOptions), async (req, res) =>
         })
 })
 
-app.get('/api/search/serviceAreas/:query', cors(corsOptions), async (req, res) => {
+app.get('/api/search/serviceAreas/:query', async (req, res) => {
 
     let keywords = req.params.query;
   
