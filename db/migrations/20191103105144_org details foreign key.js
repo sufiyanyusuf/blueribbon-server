@@ -5,16 +5,16 @@ exports.up = function(knex) {
         t.unique('logo')
     })
     .alterTable('User_Subscriptions', function(t) {   
-        t.string('brand_logo').references('logo').inTable('Organizations').alter();
+        t.string('brand_logo').references('logo').inTable('Organizations').onUpdate('cascade').alter();
     })
 };
 
 exports.down = function(knex) {
     return knex.schema
-    .alterTable('Organizations', function(t) {
-        t.dropUnique('organizations_logo_unique')
-    })
     .alterTable('User_Subscriptions', function(t) {   
-        t.string('brand_logo').alter()
+        t.dropForeign('brand_logo')
+    })
+    .alterTable('Organizations', function(t) {
+        t.dropUnique('logo')
     })
 };
