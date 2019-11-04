@@ -3,46 +3,19 @@ const ServiceLocationRouter = express.Router();
 
 var serviceLocations = require('../assets/serviceLocations_uae');
 
-const turf = require('@turf/turf')
-const { point,polygon } = require('@turf/helpers');
+const verifyCoordinates = require('../utils/CheckPointInAreas')
 
 const ServiceLocation = require('../../db/models/serviceLocation');
 
+
 ServiceLocationRouter.route('/:listing_id/verifyCoordinates').get(async function (req, res) {
+
     let listing_id = parseInt(req.params.listing_id)
-    var pt = point([req.body.lat, req.body.long]);
-
-    try{
-
-        const areas = await ServiceLocation
-                                        .query()
-                                        .where('listing_id', listing_id);
-                     
-                                      
-        areas.map((area,index) =>{
-
-            if (area.polygon.data){
-
-                const polygonData = area.polygon.data
-                const _polygon = polygonData.map((coordinate) => {
-                    return [coordinate.lat,coordinate.lng]
-                })
-
-                var poly = polygon([_polygon]);
-                if (turf.booleanPointInPolygon(pt, poly)){
-                    res.json({'status':true,'attempt':index})
-                }
-
-            }
-
-        })
-
-        res.json({'status':false})
-
-    }catch(e){
-        res.json(e);
-    }
-
+    var coordinate = [req.body.lat, req.body.long];
+ 
+    verifyCoordinates(listing_id,coordinate)
+    .then(result => res.status(200).json(result))
+    .catch(e => res.status(404).json(e))
 
 });
 

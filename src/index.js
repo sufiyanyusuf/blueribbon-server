@@ -17,6 +17,8 @@ const serviceLocationRoute = require('./Listing/serviceLocationRoute')
 const uploadRoute = require('./Listing/uploadRoute')
 const paymentRoute = require('./PaymentRoute')
 const userRoute = require('./userRoute')
+const subscriptionRoute = require('./SubscriptionsRoute')
+
 
 
 var jwt = require('express-jwt');
@@ -53,9 +55,9 @@ app.use ('/api/serviceLocations',serviceLocationRoute);
 app.use ('/api/payment',jwtCheck,paymentRoute);
 app.use ('/api/modifier',modifierRoute);
 app.use ('/api/upload',uploadRoute);
+app.use ('/api/subscriptions',jwtCheck,subscriptionRoute)
 
 app.use('/api/user', jwtCheck, userRoute);
-
 
 
 app.get('/api/productInfo/:id', (req, res) => {

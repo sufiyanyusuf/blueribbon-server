@@ -6,6 +6,7 @@ const User = require('../db/models/user');
 const UserAddress = require('../db/models/userAddress');
 const Subscriptions = require('../db/models/subscription');
 const { raw } = require('objection');
+const verifyCoordinates = require('./utils/CheckPointInAreas')
 
 
 const getAccessToken = new Promise (async (resolve, reject) => {
@@ -24,7 +25,6 @@ const getAccessToken = new Promise (async (resolve, reject) => {
         reject(error)
     })
 })
-
 
 
 const verifyLocalProfile = async (id) => {
@@ -66,6 +66,27 @@ const getUserSubscriptions = async (user_id) => {
         }catch (e){
             reject (e.error);
         }
+    })
+}
+
+const getUserLocations = async (user_id) => {
+    return new Promise (async (resolve, reject) => {
+        try {
+            const addresses = await UserAddress.query().where({
+                "user_id":decodeURIComponent(user_id)
+            });
+            resolve(addresses);
+        }catch (e){
+            reject (e.error);
+        }
+    })
+}
+
+const checkLocationEligibility = async (location, listingId) => {
+    return new Promise (async (resolve, reject) => {
+        verifyCoordinates(listingId,location)
+        .then(result => resolve(result))
+        .catch(e => reject(e))
     })
 }
 
@@ -128,6 +149,20 @@ const addUserLocation = async (userId, req) => {
 
 
 
+UserRouter.route('/checkLocationEligibility').post(async (req,res) => {
+
+    try{
+        const listingId = req.body.listingId
+        const coordinate = req.body.coordinate
+        const eligibility = await checkLocationEligibility(coordinate, listingId) 
+        res.status(200).json(eligibility)
+    }catch (e){
+        res.status(404).json(e)
+    }
+    
+})
+
+
 UserRouter.route('/updateInfo').post(async (req,res) => {
 
     getAccessToken.then(token=>{
@@ -169,7 +204,8 @@ UserRouter.route('/test').get(async (req,res) => {
 })
 
 UserRouter.route('/subscriptions').get(async (req,res) => {
-    getUserSubscriptions(res.user.sub)
+
+    getUserSubscriptions(req.user.sub)
         .then ((subscriptions) =>{
             res.status(200).json(subscriptions)
         }).catch(e => {
@@ -177,5 +213,13 @@ UserRouter.route('/subscriptions').get(async (req,res) => {
         })
 })
 
+UserRouter.route('/savedLocations').get(async (req,res) => {
+    getUserLocations(req.user.sub)
+        .then ((locations) =>{
+            res.status(200).json(locations)
+        }).catch(e => {
+            res.status(400).json(e)
+        })
+})
 
 module.exports = UserRouter;
