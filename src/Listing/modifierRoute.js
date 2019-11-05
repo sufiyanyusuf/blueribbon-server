@@ -75,7 +75,9 @@ ModifierRouter.route('/create').post(async function (req, res) {
                     pricing_impact:choice.pricing_impact,
                     icon:choice.icon,
                     image:choice.image,
-                    default_selection:choice.default_selection
+                    default_selection:choice.default_selection,
+                    unit:choice.unit,
+                    value:choice.value
                 };
                 console.log(newChoice);
                 return newChoice;
@@ -92,7 +94,7 @@ ModifierRouter.route('/create').post(async function (req, res) {
                 min_value:req.body.minValue,
                 step_value:req.body.stepValue,
                 price_multiplier:req.body.price_multiplier,
-                unit_title:req.body.unit_title
+                unit_title:req.body.unit,
             };
            
             return newStepper;
