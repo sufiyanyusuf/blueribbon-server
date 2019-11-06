@@ -7,9 +7,10 @@ const Listing = require('../db/models/listing');
 const ProductInfo = require('../db/models/productInfo');
 const Subscription = require('../db/models/subscription');
 const uuid = require('uuid/v1')
+const pluralize = require ('pluralize')
 //cus_G2w3giq2XEGgBI
 
-const getPurchase = async(stripePurchase,listingId,userId) => {
+const getPurchase = async(stripePurchase,listingId,userId,orderDetails,deliveryAddress) => {
 
   return new Promise (async (resolve, reject) => {
     
@@ -24,7 +25,9 @@ const getPurchase = async(stripePurchase,listingId,userId) => {
         payment_gateway:'stripe',
         receipt_url:stripePurchase.receipt_url,
         card_last4:stripePurchase.payment_method_details.card.last4,
-        card_brand:stripePurchase.payment_method_details.card.brand
+        card_brand:stripePurchase.payment_method_details.card.brand,
+        order_details:orderDetails,
+        delivery_address:deliveryAddress,
       }
       resolve (purchase)
     }catch(e){
@@ -35,7 +38,7 @@ const getPurchase = async(stripePurchase,listingId,userId) => {
 
 }
 
-const getSubscription = async(listingId,userId,orderInfo) => {
+const getSubscription = async(listingId,userId,quantity,period,unit) => {
 
   console.log(listingId);
 
@@ -47,12 +50,17 @@ const getSubscription = async(listingId,userId,orderInfo) => {
       const productInfo = await listing.$relatedQuery('productInfo')      
       const organization = await listing.$relatedQuery('organization')
 
+      var _unit = quantity + ' ' + pluralize ('Coupon',quantity)
+      if (listing && listing.subscription_type == 'scheduled'){
+        _unit = period + ' ' + pluralize (unit,period)
+      }
+
       const subscription = {
         user_id:userId,
         listing_id:listingId,
         subscription_id:uuid(),
         type:listing.subscription_type,
-        value:orderInfo.value,
+        value:_unit,
         title:productInfo.title,
         brand_name:organization.title,
         brand_logo:organization.logo,
@@ -168,6 +176,7 @@ PaymentRouter.route('/new/charge').post(async (req, res) => {
 
 PaymentRouter.route('/new/applePay').post(async (req, res) => {
 
+    console.log(req.body)
     return stripe.charges
     .create({
       amount: req.body.amount, // Unit: cents
@@ -176,18 +185,14 @@ PaymentRouter.route('/new/applePay').post(async (req, res) => {
       description: 'Test payment',
     })
     .then(async (result) => {
-  
-      const orderInfo = {value:4}
-      try{
-        // getPurchase(result,req.listingId,req.user.sub).then(purchase => {
-        //   getSubscription(listingId,req.user.sub,orderInfo).then(subscription => {
-        //     updateUserPurchase (purchase,subscription)
-        //     .then(res.status(200))
-        //   })
-        // })
+      const quantity = req.body.quantity
+      const period = req.body.period
+      const unit = req.body.unit
 
-        const purchase = await getPurchase(result,req.body.listingId,req.user.sub)
-        const subscription = await getSubscription(req.body.listingId,req.user.sub,orderInfo)
+      try{
+  
+        const purchase = await getPurchase(result,req.body.listingId,req.user.sub,req.body.orderDetails,req.body.deliveryAddress)
+        const subscription = await getSubscription(req.body.listingId,req.user.sub,quantity,period,unit)
 
         updateUserPurchase (purchase,subscription)
         .then(_ => {

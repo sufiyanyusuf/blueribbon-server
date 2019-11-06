@@ -137,6 +137,7 @@ const addUserLocation = async (userId, req) => {
                 .insert({
                     "user_id":userId,
                     "complete_address":req.complete_address,
+                    "base_address":req.base_address,
                     "coordinates": raw('point('+ parseFloat(req.latitude)+','+parseFloat(req.longitude)+')') ,
                     "tag":req.tag
                 });
