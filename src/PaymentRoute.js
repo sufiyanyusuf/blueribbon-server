@@ -77,19 +77,6 @@ const getSubscription = async(listingId,userId,quantity,period,unit) => {
   
 }
 
-PaymentRouter.route('/test').get(async (req, res) => {
-
-  const orderInfo = {
-    value:'5 Bottles'
-  }
-
-  getSubscription(4,'xyz',orderInfo).then(sub => {
-    console.log(sub);
-  }).catch(e => {
-    console.log(e);
-  })
- 
-});
 
 const updateUserPurchase = async (purchase,subscription) => {
 
@@ -139,7 +126,6 @@ PaymentRouter.route('/new/card').post(async (req, res) => {
  
 });
 
-
 PaymentRouter.route('/customer/cards').post(async (req, res) => {
   const customerId = req.body.customerId;
   return stripe.customers.listSources(
@@ -177,6 +163,8 @@ PaymentRouter.route('/new/charge').post(async (req, res) => {
 PaymentRouter.route('/new/applePay').post(async (req, res) => {
 
     console.log(req.body)
+    //validate all params before charging
+
     return stripe.charges
     .create({
       amount: req.body.amount, // Unit: cents
@@ -217,7 +205,6 @@ PaymentRouter.route('/new/applePay').post(async (req, res) => {
 
 });
 
-
 PaymentRouter.route('/remove/card').post(async (req, res) => {
 
   const customerId = req.body.customerId;
@@ -234,5 +221,7 @@ PaymentRouter.route('/remove/card').post(async (req, res) => {
   });
 
 });
+
+
 
 module.exports = PaymentRouter

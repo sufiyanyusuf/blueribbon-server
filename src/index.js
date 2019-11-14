@@ -10,6 +10,7 @@ const bodyParser = require('body-parser');
 const Organization = require('../db/models/organization')
 const Listing = require('../db/models/listing')
 const productInfo = require('../db/models/productInfo')
+const Purchase = require('../db/models/purchase')
 
 const listingRoute = require('./Listing/listingRoute')
 const modifierRoute = require('./Listing/modifierRoute')
@@ -18,7 +19,7 @@ const uploadRoute = require('./Listing/uploadRoute')
 const paymentRoute = require('./PaymentRoute')
 const userRoute = require('./userRoute')
 const subscriptionRoute = require('./SubscriptionsRoute')
-
+const axios = require('axios');
 
 
 var jwt = require('express-jwt');
@@ -36,6 +37,17 @@ var jwtCheck = jwt({
   algorithms: ['RS256']
 });
 
+var orgJwtCheck = jwt({
+    secret: jwks.expressJwtSecret({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 5,
+        jwksUri: 'https://blue-ribbon.auth0.com/.well-known/jwks.json'
+  }),
+  audience: 'https://blueribbon.io/api/organization/user',
+  issuer: 'https://blue-ribbon.auth0.com/',
+  algorithms: ['RS256']
+});
 
 
 // app.use(jwtCheck);
@@ -142,6 +154,34 @@ app.get('/api/search/serviceAreas/:query', async (req, res) => {
     // res.json(areas);
 })
 
+app.get('/api/test',async (req, res) => {
+  
+    try{
+      const purchases = await Purchase
+      .query()
+      .eager('[subscription]')
+    
+      res.status(200).json(purchases)
+
+    }catch(e){
+      res.status(404)
+    }
+  });
+
+  app.get('/api/pubsub/local',async (req, res) => {
+    //add auth middleware to this later on
+  console.log('subscription check req received on localhost');
+  res.status(200)
+});
+
+  app.post('/api/pubsub',async (req, res) => {
+      //add auth middleware to this later on
+    console.log('subscription check req received');
+    axios.get('https://3458a3ef.ngrok.io/api/pubsub/local')
+    res.status(204).json('done');
+  });
+
 app.listen(port, function () {
     console.log('Example app listening on port !',port);
+
 });
