@@ -171,7 +171,7 @@ app.get('/api/test',async (req, res) => {
   app.get('/api/pubsub/local',async (req, res) => {
     //add auth middleware to this later on
   console.log('subscription check req received on localhost');
-  res.status(200)
+  res.status(200).json('ok')
 });
 
   app.post('/api/pubsub',async (req, res) => {
@@ -179,6 +179,7 @@ app.get('/api/test',async (req, res) => {
     console.log('subscription check req received');
     axios.get('https://3458a3ef.ngrok.io/api/pubsub/local')
     res.status(204).json('done');
+    
   });
 
 app.listen(port, function () {
