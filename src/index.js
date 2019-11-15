@@ -179,6 +179,7 @@ app.get('/api/test',async (req, res) => {
     console.log('subscription check req received');
     axios.get('https://3458a3ef.ngrok.io/api/pubsub/local')
     res.status(204).json('done');
+
     
   });
 
