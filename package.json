@@ -1,5 +1,5 @@
 {
-  "name": "server",
+  "name": "Blueribbon Server",
   "version": "1.0.0",
   "description": "Backend for blueribbon.io",
   "main": "index.js",
