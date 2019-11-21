@@ -29,7 +29,8 @@
     "pluralize": "^8.0.0",
     "response-time": "^2.3.2",
     "stripe": "^7.10.0",
-    "uuid": "^3.3.3"
+    "uuid": "^3.3.3",
+    "xstate": "^4.6.7"
   },
   "devDependencies": {
     "nodemon": "^1.19.2"

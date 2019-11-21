@@ -80,7 +80,6 @@ ListingRouter.route('/:listing_id/deepLink').get(async function (req, res) {
           }
         }
       }).then(response => {
-        console.log(response)
         if (response.data.shortLink){
           res.json(response.data.shortLink)
         }

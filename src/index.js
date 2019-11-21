@@ -20,7 +20,7 @@ const paymentRoute = require('./PaymentRoute')
 const userRoute = require('./userRoute')
 const subscriptionRoute = require('./SubscriptionsRoute')
 const axios = require('axios');
-
+const subscriptionStateManager = require('./utils/SubscriptionStateManager');
 
 var jwt = require('express-jwt');
 var jwks = require('jwks-rsa');
@@ -168,7 +168,7 @@ app.get('/api/test',async (req, res) => {
     }
   });
 
-  app.get('/api/pubsub/local',async (req, res) => {
+app.get('/api/pubsub/local',async (req, res) => {
     //add auth middleware to this later on
   console.log('subscription check req received on localhost');
   res.status(200).json('ok')
@@ -185,5 +185,5 @@ app.get('/api/test',async (req, res) => {
 
 app.listen(port, function () {
     console.log('Example app listening on port !',port);
-
+    // subscriptionStateManager();
 });
