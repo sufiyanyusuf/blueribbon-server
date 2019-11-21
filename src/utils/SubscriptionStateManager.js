@@ -200,13 +200,19 @@ service.onTransition(async (_state) => {
     if (_state.changed){
 
         const knex = SubscriptionState.knex();
-    
+        
         try {
             const state = await transaction(knex, async (trx) => {
-                // console.log(_state);
+
                 const newState = await SubscriptionState
                 .query(trx)
-                .insert({'subscription_id': 48, 'state': _state});
+                .insert({
+                    'subscription_id': 48, 
+                    'state': _state, 
+                    'subscription_state':_state.value.subscription, 
+                    'payment_state':_state.value.payment, 
+                    'fulfillment_state':_state.value.fulfillment
+                });
                 return newState;
             });
             console.log('new state :',_state.value);
