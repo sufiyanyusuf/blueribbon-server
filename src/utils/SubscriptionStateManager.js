@@ -1,11 +1,17 @@
 
-
-// update state table based on events
-
-// const { transaction } = require('objection');
-// import { Machine, send, interpret } from 'xstate';
+const { transaction } = require('objection');
+const { State, Machine, send, assign, interpret } = require('xstate');
+const SubscriptionState = require('../../db/models/subscriptionState')
 
 
+
+const deductSubscriptionValue = assign({
+    remainingFulfillmentIntervals: (context, event) => context.remainingFulfillmentIntervals - 1
+});
+
+const incrementSubscriptionValue = assign({
+    remainingFulfillmentIntervals: (context, event) => context.remainingFulfillmentIntervals + 2
+});
 
 const subscriptionValid = (context, event) => {
 
@@ -29,15 +35,7 @@ const subscriptionInvalid = (context, event) => {
 }
 
 
-const deductSubscriptionValue = assign({
-    remainingFulfillmentIntervals: (context, event) => context.remainingFulfillmentIntervals - 1
-});
-
-const incrementSubscriptionValue = assign({
-    remainingFulfillmentIntervals: (context, event) => context.remainingFulfillmentIntervals + 2
-});
-
-const stateMachine = Machine({
+const machine = Machine({
 
     id: 'subscription',
     type: 'parallel',
@@ -162,10 +160,68 @@ const stateMachine = Machine({
 
 
 
-// const stateManager = () => {
-  
+const stateManager = async (subscriptionId = 48) => {
+
+    const storedState = await SubscriptionState.query().where('subscription_id',subscriptionId)
+    
+    var lastState 
+    storedState.map(state => {
+        if (!lastState){
+            lastState = state
+        }else{
+            if (lastState.id < state.id) {
+                lastState = state
+            }
+        }
+    })
+
+    var service 
+
+    if (lastState){
+
+        const stateDefinition = lastState.state
+
+        // Use State.create() to restore state from a plain object
+        const previousState = State.create(stateDefinition);
+
+        // Use machine.resolveState() to resolve the state definition to a new State instance relative to the machine
+        const resolvedState = machine.resolveState(previousState);
+
+        // Start the service
+        service = interpret(machine).start(resolvedState);
+
+    }else {
+        service = interpret(machine).start();
+    }
 
 
-// }
+service.onTransition(async (_state) => {
 
-// module.exports = stateManager;
+    if (_state.changed){
+
+        const knex = SubscriptionState.knex();
+    
+        try {
+            const state = await transaction(knex, async (trx) => {
+                // console.log(_state);
+                const newState = await SubscriptionState
+                .query(trx)
+                .insert({'subscription_id': 48, 'state': _state});
+                return newState;
+            });
+            console.log('new state :',_state.value);
+        } catch (err) {
+            console.log(err, 'Something went wrong. State not inserted');
+        }
+    }
+});
+
+// Send events
+service.send('PAYMENT_SUCCESS');
+
+// Stop the service when you are no longer using it.
+service.stop();
+
+}
+
+module.exports = stateManager;
