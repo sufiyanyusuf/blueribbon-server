@@ -4,7 +4,7 @@ const { State, Machine, send, assign, interpret } = require('xstate');
 const SubscriptionState = require('../../db/models/subscriptionState')
 
 
-
+//change hardcoded values
 const deductSubscriptionValue = assign({
     remainingFulfillmentIntervals: (context, event) => context.remainingFulfillmentIntervals - 1
 });
@@ -18,8 +18,8 @@ const subscriptionValid = (context, event) => {
     return context.remainingFulfillmentIntervals > 1 && !context.paused;
   }
 
-const subscriptionPaused = (context, event) => {
-    return context.paused;
+const subscriptionNotPaused = (context, event) => {
+    return !context.paused;
 }
 
 const pauseSubscription = assign({
@@ -111,7 +111,7 @@ const machine = Machine({
                 },
                 pending:{
                     on:{
-                        INITIATED:'initiated'
+                        INITIATED:{target:'initiated', cond:subscriptionNotPaused}
                     },
                 },
                 initiated:{
@@ -201,17 +201,35 @@ service.onTransition(async (_state) => {
 
         const knex = SubscriptionState.knex();
         
+
         try {
+
+            var options
+            if (_state.value.fulfillment == 'ineligible'){
+                options = (machine.states.fulfillment.states.ineligible.events)
+            }else if (_state.value.fulfillment == 'pending'){
+                options = (machine.states.fulfillment.states.pending.events)
+            }else if (_state.value.fulfillment == 'initiated'){
+                options = (machine.states.fulfillment.states.initiated.events)
+            }else if (_state.value.fulfillment == 'shipped'){
+                options = (machine.states.fulfillment.states.shipped.events)
+            }else if (_state.value.fulfillment == 'successful'){
+                options = (machine.states.fulfillment.states.successful.events)
+            }else if (_state.value.fulfillment == 'failure'){
+                options = (machine.states.fulfillment.states.failure.events)
+            }
+            
             const state = await transaction(knex, async (trx) => {
 
                 const newState = await SubscriptionState
                 .query(trx)
                 .insert({
-                    'subscription_id': 48, 
+                    'subscription_id': subscriptionId, 
                     'state': _state, 
                     'subscription_state':_state.value.subscription, 
                     'payment_state':_state.value.payment, 
-                    'fulfillment_state':_state.value.fulfillment
+                    'fulfillment_state':_state.value.fulfillment,
+                    'fulfillment_options':options
                 });
                 return newState;
             });
