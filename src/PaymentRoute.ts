@@ -1,4 +1,5 @@
-const express = require('express');
+import express = require('express');
+import { Url } from 'url';
 const PaymentRouter = express.Router();
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -10,15 +11,53 @@ const uuid = require('uuid/v1')
 const pluralize = require('pluralize')
 const { transaction } = require('objection');
 const StateManager = require('./utils/SubscriptionStateManager')
+const QuantityResolver = require('./utils/QuantityResolver')
 
 //cus_G2w3giq2XEGgBI
 
-const getPurchase = async(stripePurchase,listingId,userId,orderDetails,deliveryAddress) => {
 
-  return new Promise (async (resolve, reject) => {
+interface StripePurchase {
+  id: any,
+  amount: number,
+  currency: any,
+  receipt_url: any,
+  payment_method_details: { card: { last4: string; brand: string; } }, 
+}
+
+interface Purchase {
+  user_id:string,
+  listing_id:string,
+  purchase_id:string,
+  payment_id:StripePurchase['id'],
+  amount:StripePurchase['amount'],
+  currency:StripePurchase['currency'],
+  payment_gateway:string,
+  receipt_url:StripePurchase['receipt_url'],
+  card_last4:StripePurchase['payment_method_details']['card']['last4'],
+  card_brand:StripePurchase['payment_method_details']['card']['brand'],
+  order_details:any,
+  delivery_address:string,
+}
+
+interface Subscription {
+  user_id:string,
+  listing_id:string,
+  subscription_id:string,
+  type:string,
+  value:string,
+  title:string,
+  brand_name:string,
+  brand_logo:string,
+  is_active:boolean,
+  product_photo:string
+}
+
+const getPurchase = async(stripePurchase: StripePurchase ,listingId: string,userId: string,orderDetails: any,deliveryAddress: string):Promise<Purchase> => {
+
+  return new Promise <Purchase> (async (resolve, reject) => {
     
     try {
-      const purchase = {
+      const purchase:Purchase = {
         user_id:userId,
         listing_id:listingId,
         purchase_id:uuid(),
@@ -41,11 +80,11 @@ const getPurchase = async(stripePurchase,listingId,userId,orderDetails,deliveryA
 
 }
 
-const getSubscription = async(listingId,userId,quantity,period,unit) => {
+const getSubscription = async(listingId: any,userId: any,quantity: string,period: string,unit: any):Promise<Subscription> => {
 
   console.log(listingId);
 
-  return new Promise (async (resolve, reject) => {
+  return new Promise <Subscription> (async (resolve, reject) => {
     
     try {
 
@@ -58,7 +97,7 @@ const getSubscription = async(listingId,userId,quantity,period,unit) => {
         _unit = period + ' ' + pluralize (unit,period)
       }
 
-      const subscription = {
+      const subscription:Subscription = {
         user_id:userId,
         listing_id:listingId,
         subscription_id:uuid(),
@@ -71,7 +110,8 @@ const getSubscription = async(listingId,userId,quantity,period,unit) => {
         product_photo:productInfo.image_url
       }
       
-      resolve (subscription)
+      resolve(subscription)
+      
     }catch(e){
       reject (e)
     }
@@ -80,16 +120,15 @@ const getSubscription = async(listingId,userId,quantity,period,unit) => {
   
 }
 
-
-const updateUserPurchase = async (purchase,subscription) => {
+const updateUserPurchase = async (purchase: Purchase,subscription: Subscription) => {
 
   return new Promise (async (resolve, reject) => {
     
     try{
       const _purchase = await Purchase.query().insert(purchase);                              
       const _subscription = await _purchase.$relatedQuery('subscription').insert(subscription);
-      console.log(_subscription)
-      StateManager(_subscription.id,'PAYMENT_SUCCESS');
+      // QuantityResolver.resolve()
+      StateManager(_subscription.id,'PAYMENT_SUCCESS',);
       resolve(_subscription)
       
     }catch(e){
@@ -100,10 +139,10 @@ const updateUserPurchase = async (purchase,subscription) => {
 
 }
 
-PaymentRouter.route('/new/customer').post(async (req, res) => {
+PaymentRouter.route('/new/customer').post(async (req:express.Request, res:express.Response) => {
   return stripe.customers.create({
       description: req.body.id,
-    }).then((customer,err) => {
+    }).then((customer: any,err: any) => {
       if (customer){
         res.status(200).json(customer)
         //write to db
@@ -113,14 +152,14 @@ PaymentRouter.route('/new/customer').post(async (req, res) => {
     });
 });
 
-PaymentRouter.route('/new/card').post(async (req, res) => {
+PaymentRouter.route('/new/card').post(async (req:express.Request, res:express.Response) => {
   const customerId = req.body.customerId;
 
   return stripe.customers.createSource(
     customerId,
     {
       source: 'tok_mastercard',
-    }).then((card,err) => {
+    }).then((card: any,err: any) => {
       if (card){
         res.status(200).json(card)
       }else{
@@ -130,14 +169,14 @@ PaymentRouter.route('/new/card').post(async (req, res) => {
  
 });
 
-PaymentRouter.route('/customer/cards').post(async (req, res) => {
+PaymentRouter.route('/customer/cards').post(async (req:express.Request, res:express.Response) => {
   const customerId = req.body.customerId;
   return stripe.customers.listSources(
     customerId,
     {
       limit: 3,
       object: 'card',
-    }).then((cards,err) => {
+    }).then((cards: any,err: any) => {
       if (cards){
         res.status(200).json(cards)
       }else{
@@ -146,7 +185,7 @@ PaymentRouter.route('/customer/cards').post(async (req, res) => {
     });
 })
 
-PaymentRouter.route('/new/charge').post(async (req, res) => {
+PaymentRouter.route('/new/charge').post(async (req:express.Request, res:express.Response) => {
 
   return stripe.charges
   .create({
@@ -156,15 +195,15 @@ PaymentRouter.route('/new/charge').post(async (req, res) => {
     card: req.body.cardId,
     description: 'Test payment',
   })
-  .then(result => {
+  .then((result: any) => {
     res.status(200).json(result);
-  }).catch(e => {
+  }).catch((e: any) => {
     res.status(400).json(e)
   });
 
 });
 
-PaymentRouter.route('/new/applePay').post(async (req, res) => {
+PaymentRouter.route('/new/applePay').post(async (req:any, res:express.Response) => {
 
     console.log(req.body)
     //validate all params before charging
@@ -176,7 +215,7 @@ PaymentRouter.route('/new/applePay').post(async (req, res) => {
       source: req.body.tokenId,
       description: 'Test payment',
     })
-    .then(async (result) => {
+    .then(async (result: any) => {
       const quantity = req.body.quantity
       const period = req.body.period
       const unit = req.body.unit
@@ -201,7 +240,7 @@ PaymentRouter.route('/new/applePay').post(async (req, res) => {
       }
 
       res.status(200).json(result)
-    }).catch(e => {
+    }).catch( (e: any) => {
       res.status(400).json(e)
     })
 
@@ -209,14 +248,14 @@ PaymentRouter.route('/new/applePay').post(async (req, res) => {
 
 });
 
-PaymentRouter.route('/remove/card').post(async (req, res) => {
+PaymentRouter.route('/remove/card').post(async (req:express.Request, res:express.Response) => {
 
   const customerId = req.body.customerId;
   const cardId = req.body.cardId;
 
   return stripe.customers
   .deleteSource(customerId,cardId)
-  .then((confirmation,err) => {
+  .then((confirmation: any,err: any) => {
     if (confirmation){
       res.status(200).json(confirmation)
     }else{
