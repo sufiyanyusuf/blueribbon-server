@@ -41,15 +41,13 @@ const getSubscriptionIdList = (states) => {
 
 
 OrderManagementRouter.route('/getActiveOrders').get(async function (req, res) {
-
 })
 
 OrderManagementRouter.route('/getOrders/:orderState').get(async function (req, res) {
-
     try{
 
         const orderState = req.params.orderState
-
+        console.log(orderState)
         const storedStates = await SubscriptionState.query() //query by org id later
         const idList = getSubscriptionIdList(storedStates)
         const currentSubscriptionStatesById = idList.map(id => {
@@ -57,7 +55,7 @@ OrderManagementRouter.route('/getOrders/:orderState').get(async function (req, r
             return getCurrentStateforSubscription(states)
         })
         
-        const pendingOrderStates = currentSubscriptionStatesById.filter(state => {
+        const matchingOrderStates = currentSubscriptionStatesById.filter(state => {
             if (state.fulfillment_state == orderState){
                 const result = {
                     'timestamp':state.timestamp,
@@ -69,9 +67,9 @@ OrderManagementRouter.route('/getOrders/:orderState').get(async function (req, r
             }
         })
 
-        if (pendingOrderStates.length>0){
+        if (matchingOrderStates.length>0){
 
-            const orders = await Promise.all(pendingOrderStates.map(async orderState => {
+            const orders = await Promise.all(matchingOrderStates.map(async orderState => {
     
                 try {
     

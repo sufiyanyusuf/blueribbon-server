@@ -31,6 +31,7 @@
     "pluralize": "^8.0.0",
     "response-time": "^2.3.2",
     "stripe": "^7.10.0",
+    "ts-enum-util": "^4.0.1",
     "typescript": "^3.7.2",
     "uuid": "^3.3.3",
     "xstate": "^4.6.7"

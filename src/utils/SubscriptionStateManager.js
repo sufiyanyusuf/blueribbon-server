@@ -31,7 +31,12 @@ const deductSubscriptionValue = assign({
 
 const incrementSubscriptionValue = assign({
     remainingFulfillmentIntervals: (context, event) => {
-        return context.remainingFulfillmentIntervals + 1
+        if (event.value) {
+            return context.remainingFulfillmentIntervals + event.value   
+        } else {
+            return context.remainingFulfillmentIntervals
+        }
+        
     }
 });
 
@@ -159,7 +164,7 @@ const machine = Machine({
 })
 
 
-const stateManager = async (subscriptionId = 48, event = "", params = {}) => {
+const stateManager = async (subscriptionId = 49, event = "PAYMENT_SUCCESS", params = {}) => {
 
     const storedState = await SubscriptionState.query().where('subscription_id',subscriptionId)
     

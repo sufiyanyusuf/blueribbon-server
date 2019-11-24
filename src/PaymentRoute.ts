@@ -1,5 +1,8 @@
 import express = require('express');
 import { Url } from 'url';
+import { Types, Units } from './utils/Defaults';
+import {$enum} from "ts-enum-util";
+
 const PaymentRouter = express.Router();
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -12,6 +15,7 @@ const pluralize = require('pluralize')
 const { transaction } = require('objection');
 const StateManager = require('./utils/SubscriptionStateManager')
 const QuantityResolver = require('./utils/QuantityResolver')
+
 
 //cus_G2w3giq2XEGgBI
 
@@ -120,23 +124,48 @@ const getSubscription = async(listingId: any,userId: any,quantity: string,period
   
 }
 
-const updateUserPurchase = async (purchase: Purchase,subscription: Subscription) => {
-
+const updateUserPurchase = async (purchase: Purchase,subscription: Subscription, intervals:number) => {
   return new Promise (async (resolve, reject) => {
-    
-    try{
-      const _purchase = await Purchase.query().insert(purchase);                              
-      const _subscription = await _purchase.$relatedQuery('subscription').insert(subscription);
-      // QuantityResolver.resolve()
-      StateManager(_subscription.id,'PAYMENT_SUCCESS',);
-      resolve(_subscription)
+    //add a transaction for this:
+    if (intervals == 0) {
+      reject(Error('Invalid Subscription Value. Please Try Later'))
+    }else{
+      try{
+        const _purchase = await Purchase.query().insert(purchase);                              
+        const _subscription = await _purchase.$relatedQuery('subscription').insert(subscription);
+        StateManager(_subscription.id, 'PAYMENT_SUCCESS', {value:intervals});
+        resolve(_subscription)
+      }catch(e){
+        reject(e)
+      }
+    }
+  })
+}
+
+const getFulfillmentIntervals = async (req: any): Promise<number> => {
+  return new Promise<number>(async (resolve, reject) => {
+    try {
+      const quantity = req.body.quantity
+      const frequency = req.body.frequency
+      const length = req.body.length
       
-    }catch(e){
+      let _timeUnit: string = length.unit
+      let _frequencyUnit: string = frequency.unit
+
+      let timeUnit = $enum(Units.time).getKeyOrThrow(_timeUnit);
+      let timeValue: number = length.value
+      let frequencyUnit = $enum(Units.frequency).getKeyOrThrow(_frequencyUnit);
+      let frequencyValue: number = frequency.value
+
+      let _timePeriod: Types.time = { unit: Units.time[timeUnit], value: timeValue }
+      let _frequency: Types.frequency = { unit: Units.frequency[frequencyUnit], value: frequencyValue }
+      let intervals: number = QuantityResolver.resolve(_timePeriod, _frequency)
+      
+      resolve(intervals)
+    } catch (e) {
       reject(e)
     }
-
   })
-
 }
 
 PaymentRouter.route('/new/customer').post(async (req:express.Request, res:express.Response) => {
@@ -205,45 +234,48 @@ PaymentRouter.route('/new/charge').post(async (req:express.Request, res:express.
 
 PaymentRouter.route('/new/applePay').post(async (req:any, res:express.Response) => {
 
-    console.log(req.body)
-    //validate all params before charging
-
-    return stripe.charges
-    .create({
-      amount: req.body.amount, // Unit: cents
-      currency: 'aed',
-      source: req.body.tokenId,
-      description: 'Test payment',
-    })
-    .then(async (result: any) => {
-      const quantity = req.body.quantity
-      const period = req.body.period
-      const unit = req.body.unit
-
-      try{
-  
-        const purchase = await getPurchase(result,req.body.listingId,req.user.sub,req.body.orderDetails,req.body.deliveryAddress)
-        const subscription = await getSubscription(req.body.listingId,req.user.sub,quantity,period,unit)
-
-        updateUserPurchase (purchase,subscription)
-        .then(_ => {
-          res.status(200)
+  // console.log(req.body)
+  // validate all params before charging
+  // push units from to dashboard from server, dashboard to client,
+  try {
+    const quantity = req.body.quantity
+    const length = req.body.length
+    const intervals = await getFulfillmentIntervals(req)
+    if (intervals == 0) {
+      res.status(400).json(Error('invalid interval count - ' + intervals))
+    } else {
+        return stripe.charges
+        .create({
+          amount: req.body.amount, // Unit: cents
+          currency: 'aed',
+          source: req.body.tokenId,
+          description: 'Test payment',
         })
-        .catch(e => {
-          console.log(e)
-          res.status(400)
+        .then(async (result: any) => {
+          try{
+            const purchase = await getPurchase(result,req.body.listingId,req.user.sub,req.body.orderDetails,req.body.deliveryAddress)
+            const subscription = await getSubscription(req.body.listingId, req.user.sub, quantity, length.value, length.unit)
+            
+            updateUserPurchase (purchase,subscription,intervals)
+            .then(_ => {
+              res.status(200)
+            })
+            .catch(e => {
+              console.log(e)
+              res.status(400)
+            })
+            
+          }catch(e){
+            res.status(400)
+            console.log(e)
+          }
+          res.status(200).json(result)
         })
-        
-      }catch(e){
-        res.status(400)
-        console.log(e)
       }
-
-      res.status(200).json(result)
-    }).catch( (e: any) => {
-      res.status(400).json(e)
-    })
-
+    } catch (e) {
+        res.status(400).json(e)
+    }
+  
     //update purchases
 
 });
