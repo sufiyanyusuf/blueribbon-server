@@ -5,21 +5,13 @@ const SubscriptionState = require('../../db/models/subscriptionState')
 
 
 //change hardcoded values
-const deductSubscriptionValue = assign({
-    remainingFulfillmentIntervals: (context, event) => context.remainingFulfillmentIntervals - 1
-});
-
-const incrementSubscriptionValue = assign({
-    remainingFulfillmentIntervals: (context, event) => context.remainingFulfillmentIntervals + 2
-});
-
 const subscriptionValid = (context, event) => {
 
-    return context.remainingFulfillmentIntervals > 1 && !context.paused;
+    return context.remainingFulfillmentIntervals > 0 && !context.paused;
   }
 
-const subscriptionNotPaused = (context, event) => {
-    return !context.paused;
+const subscriptionPaused = (context, event) => {
+    return context.paused;
 }
 
 const pauseSubscription = assign({
@@ -31,9 +23,17 @@ const resumeSubscription = assign({
 });
 
 const subscriptionInvalid = (context, event) => {
-    return context.remainingFulfillmentIntervals <= 1 && !context.paused;
+    return context.remainingFulfillmentIntervals < 1 && !context.paused;
 }
 
+
+const deductSubscriptionValue = assign({
+    remainingFulfillmentIntervals: (context, event) => context.remainingFulfillmentIntervals - 1
+});
+
+const incrementSubscriptionValue = assign({
+    remainingFulfillmentIntervals: (context, event) => context.remainingFulfillmentIntervals + 1
+});
 
 const machine = Machine({
 
@@ -111,7 +111,7 @@ const machine = Machine({
                 },
                 pending:{
                     on:{
-                        INITIATED:{target:'initiated', cond:subscriptionNotPaused}
+                        INITIATED:'initiated'
                     },
                 },
                 initiated:{
@@ -129,7 +129,7 @@ const machine = Machine({
                     },
                 },
                 successful:{
-                    exit:deductSubscriptionValue,
+                    entry:deductSubscriptionValue,
                     on:{
                         RESET_CYCLE:{ target: 'pending', cond: subscriptionValid},
                         END_CYCLE:{ 
@@ -159,8 +159,7 @@ const machine = Machine({
 })
 
 
-
-const stateManager = async (subscriptionId = 48) => {
+const stateManager = async (subscriptionId = 48, action = "") => {
 
     const storedState = await SubscriptionState.query().where('subscription_id',subscriptionId)
     
@@ -233,7 +232,7 @@ service.onTransition(async (_state) => {
                 });
                 return newState;
             });
-            console.log('new state :',_state.value);
+            
         } catch (err) {
             console.log(err, 'Something went wrong. State not inserted');
         }
@@ -241,7 +240,7 @@ service.onTransition(async (_state) => {
 });
 
 // Send events
-service.send('PAYMENT_SUCCESS');
+service.send(action);
 
 // Stop the service when you are no longer using it.
 service.stop();
