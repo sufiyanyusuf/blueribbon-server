@@ -20,7 +20,8 @@ const paymentRoute = require('./PaymentRoute')
 const userRoute = require('./userRoute')
 const subscriptionRoute = require('./SubscriptionsRoute')
 const axios = require('axios');
-const subscriptionStateManager = require('./utils/SubscriptionStateManager');
+const SubscriptionValueResolver = require('./utils/QuantityResolver')
+
 
 var jwt = require('express-jwt');
 var jwks = require('jwks-rsa');
@@ -179,11 +180,11 @@ app.get('/api/pubsub/local',async (req, res) => {
     console.log('subscription check req received');
     axios.get('https://3458a3ef.ngrok.io/api/pubsub/local')
     res.status(204).json('done');
-
     
   });
 
 app.listen(port, function () {
-    console.log('Example app listening on port !',port);
+    console.log('Example app listening on port !', port);
+    SubscriptionValueResolver.resolve()
     // subscriptionStateManager();
 });

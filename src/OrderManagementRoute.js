@@ -40,45 +40,25 @@ const getSubscriptionIdList = (states) => {
 }
 
 
-const getOrderInfoFromDb = async (orderState) => {
-
-    return new Promise (async (resolve, reject) => {
-
-        try {
-
-            
-            
-        }
-        catch(e){
-            reject(e)
-        }
-
-    })
-   
-}
-
-
-
-
 OrderManagementRouter.route('/getActiveOrders').get(async function (req, res) {
 
 })
 
-OrderManagementRouter.route('/getPendingOrders/:id').get(async function (req, res) {
-    //get all org subscriptions
-    //get current subscriptionstates
-    //if pending, add
+OrderManagementRouter.route('/getOrders/:orderState').get(async function (req, res) {
+
     try{
 
-        const organizationId = parseInt(req.params.id)
+        const orderState = req.params.orderState
+
         const storedStates = await SubscriptionState.query() //query by org id later
         const idList = getSubscriptionIdList(storedStates)
         const currentSubscriptionStatesById = idList.map(id => {
             const states = getSubscriptionStatesForId(storedStates,id)
             return getCurrentStateforSubscription(states)
         })
-        const pendingOrderStates = currentSubscriptionStatesById.map(state => {
-            if (state.fulfillment_state == 'pending'){
+        
+        const pendingOrderStates = currentSubscriptionStatesById.filter(state => {
+            if (state.fulfillment_state == orderState){
                 const result = {
                     'timestamp':state.timestamp,
                     'fulfillment_state':state.fulfillment_state,
@@ -89,32 +69,36 @@ OrderManagementRouter.route('/getPendingOrders/:id').get(async function (req, re
             }
         })
 
+        if (pendingOrderStates.length>0){
 
-        const pendingOrders = await Promise.all(pendingOrderStates.map(async orderState => {
-
-            try {
-
-                const subscription = await Subscription
-                .query()
-                .findById(orderState.subscription_id)
-                .eager('purchase')
-                
-                const order = {
-                    ...orderState,
-                    'title':subscription.title,
-                    'customer':subscription.user_id,
-                    'order':subscription.purchase.order_details
+            const orders = await Promise.all(pendingOrderStates.map(async orderState => {
+    
+                try {
+    
+                    const subscription = await Subscription
+                    .query()
+                    .findById(orderState.subscription_id)
+                    .eager('purchase')
+                  
+                    const order = {
+                        ...orderState,
+                        'title':subscription.title,
+                        'customer':subscription.user_id,
+                        'order':subscription.purchase.order_details
+                    }
+    
+                    return order
+    
                 }
-
-                return order
-
-            }
-            catch(e){
-                return (e)
-            }
-        }));
-
-        res.status(200).json(pendingOrders)
+                catch(e){
+                    return (e)
+                }
+            }));
+    
+            res.status(200).json(orders)
+        }else{
+            res.status(204).json({})
+        }
 
     }catch(e){
         res.status(500).json(e)
@@ -122,8 +106,11 @@ OrderManagementRouter.route('/getPendingOrders/:id').get(async function (req, re
 
 })
 
-OrderManagementRouter.route('/updateState').put(async function (req, res) {
+OrderManagementRouter.route('/updateFulfillmentState').post(async function (req, res) {
+    const subscriptionId = req.body.subscriptionId;
+    const action = req.body.action;
 
+    StateManager(subscriptionId,action);
 })
 
 //send notifications

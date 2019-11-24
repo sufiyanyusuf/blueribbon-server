@@ -1,14 +1,11 @@
-
 const { transaction } = require('objection');
 const { State, Machine, send, assign, interpret } = require('xstate');
 const SubscriptionState = require('../../db/models/subscriptionState')
 
-
 //change hardcoded values
 const subscriptionValid = (context, event) => {
-
     return context.remainingFulfillmentIntervals > 0 && !context.paused;
-  }
+}
 
 const subscriptionPaused = (context, event) => {
     return context.paused;
@@ -26,13 +23,16 @@ const subscriptionInvalid = (context, event) => {
     return context.remainingFulfillmentIntervals < 1 && !context.paused;
 }
 
-
 const deductSubscriptionValue = assign({
-    remainingFulfillmentIntervals: (context, event) => context.remainingFulfillmentIntervals - 1
+    remainingFulfillmentIntervals: (context, event) => {
+        context.remainingFulfillmentIntervals - 1
+    }
 });
 
 const incrementSubscriptionValue = assign({
-    remainingFulfillmentIntervals: (context, event) => context.remainingFulfillmentIntervals + 1
+    remainingFulfillmentIntervals: (context, event) => {
+        context.remainingFulfillmentIntervals + 1
+    }
 });
 
 const machine = Machine({
@@ -159,7 +159,7 @@ const machine = Machine({
 })
 
 
-const stateManager = async (subscriptionId = 48, action = "") => {
+const stateManager = async (subscriptionId = 48, event = "", params = {}) => {
 
     const storedState = await SubscriptionState.query().where('subscription_id',subscriptionId)
     
@@ -193,57 +193,55 @@ const stateManager = async (subscriptionId = 48, action = "") => {
         service = interpret(machine).start();
     }
 
+    service.onTransition(async (_state) => {
 
-service.onTransition(async (_state) => {
+        if (_state.changed){
 
-    if (_state.changed){
-
-        const knex = SubscriptionState.knex();
-        
-
-        try {
-
-            var options
-            if (_state.value.fulfillment == 'ineligible'){
-                options = (machine.states.fulfillment.states.ineligible.events)
-            }else if (_state.value.fulfillment == 'pending'){
-                options = (machine.states.fulfillment.states.pending.events)
-            }else if (_state.value.fulfillment == 'initiated'){
-                options = (machine.states.fulfillment.states.initiated.events)
-            }else if (_state.value.fulfillment == 'shipped'){
-                options = (machine.states.fulfillment.states.shipped.events)
-            }else if (_state.value.fulfillment == 'successful'){
-                options = (machine.states.fulfillment.states.successful.events)
-            }else if (_state.value.fulfillment == 'failure'){
-                options = (machine.states.fulfillment.states.failure.events)
-            }
+            const knex = SubscriptionState.knex();
             
-            const state = await transaction(knex, async (trx) => {
+            try {
 
-                const newState = await SubscriptionState
-                .query(trx)
-                .insert({
-                    'subscription_id': subscriptionId, 
-                    'state': _state, 
-                    'subscription_state':_state.value.subscription, 
-                    'payment_state':_state.value.payment, 
-                    'fulfillment_state':_state.value.fulfillment,
-                    'fulfillment_options':options
+                var options
+                if (_state.value.fulfillment == 'ineligible'){
+                    options = (machine.states.fulfillment.states.ineligible.events)
+                }else if (_state.value.fulfillment == 'pending'){
+                    options = (machine.states.fulfillment.states.pending.events)
+                }else if (_state.value.fulfillment == 'initiated'){
+                    options = (machine.states.fulfillment.states.initiated.events)
+                }else if (_state.value.fulfillment == 'shipped'){
+                    options = (machine.states.fulfillment.states.shipped.events)
+                }else if (_state.value.fulfillment == 'successful'){
+                    options = (machine.states.fulfillment.states.successful.events)
+                }else if (_state.value.fulfillment == 'failure'){
+                    options = (machine.states.fulfillment.states.failure.events)
+                }
+                
+                const state = await transaction(knex, async (trx) => {
+
+                    const newState = await SubscriptionState
+                    .query(trx)
+                    .insert({
+                        'subscription_id': subscriptionId, 
+                        'state': _state, 
+                        'subscription_state':_state.value.subscription, 
+                        'payment_state':_state.value.payment, 
+                        'fulfillment_state':_state.value.fulfillment,
+                        'fulfillment_options':options
+                    });
+                    return newState;
                 });
-                return newState;
-            });
-            
-        } catch (err) {
-            console.log(err, 'Something went wrong. State not inserted');
+                
+            } catch (err) {
+                console.log(err, 'Something went wrong. State not inserted');
+            }
         }
-    }
-});
+    });
 
-// Send events
-service.send(action);
+    // Send events
+    service.send(event,params);
 
-// Stop the service when you are no longer using it.
-service.stop();
+    // Stop the service when you are no longer using it.
+    service.stop();
 
 }
 

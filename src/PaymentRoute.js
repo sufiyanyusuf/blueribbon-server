@@ -7,7 +7,10 @@ const Listing = require('../db/models/listing');
 const ProductInfo = require('../db/models/productInfo');
 const Subscription = require('../db/models/subscription');
 const uuid = require('uuid/v1')
-const pluralize = require ('pluralize')
+const pluralize = require('pluralize')
+const { transaction } = require('objection');
+const StateManager = require('./utils/SubscriptionStateManager')
+
 //cus_G2w3giq2XEGgBI
 
 const getPurchase = async(stripePurchase,listingId,userId,orderDetails,deliveryAddress) => {
@@ -84,10 +87,11 @@ const updateUserPurchase = async (purchase,subscription) => {
     
     try{
       const _purchase = await Purchase.query().insert(purchase);                              
-      const productInfo = await _purchase.$relatedQuery('subscription').insert(subscription);
-
-      resolve (productInfo)
-
+      const _subscription = await _purchase.$relatedQuery('subscription').insert(subscription);
+      console.log(_subscription)
+      StateManager(_subscription.id,'PAYMENT_SUCCESS');
+      resolve(_subscription)
+      
     }catch(e){
       reject(e)
     }

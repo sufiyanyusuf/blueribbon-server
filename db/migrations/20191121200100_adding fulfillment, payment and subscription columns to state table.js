@@ -9,8 +9,8 @@ exports.up = function(knex) {
 
 exports.down = function(knex) {
     return knex.schema.alterTable('User_Addresses', function(t) {
-        t.string('subscription_state')
-        t.string('payment_state')
-        t.string('fulfillment_state')
+        t.dropColumn('subscription_state')
+        t.dropColumn('payment_state')
+        t.dropColumn('fulfillment_state')
     });
 };
