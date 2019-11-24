@@ -25,13 +25,13 @@ const subscriptionInvalid = (context, event) => {
 
 const deductSubscriptionValue = assign({
     remainingFulfillmentIntervals: (context, event) => {
-        context.remainingFulfillmentIntervals - 1
+        return context.remainingFulfillmentIntervals - 1
     }
 });
 
 const incrementSubscriptionValue = assign({
     remainingFulfillmentIntervals: (context, event) => {
-        context.remainingFulfillmentIntervals + 1
+        return context.remainingFulfillmentIntervals + 1
     }
 });
 
