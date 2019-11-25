@@ -7,8 +7,8 @@ const subscriptionValid = (context, event) => {
     return context.remainingFulfillmentIntervals > 0 && !context.paused;
 }
 
-const subscriptionPaused = (context, event) => {
-    return context.paused;
+const subscriptionNotPaused = (context, event) => {
+    return (context.paused != true );
 }
 
 const pauseSubscription = assign({
@@ -116,7 +116,7 @@ const machine = Machine({
                 },
                 pending:{
                     on:{
-                        INITIATED:'initiated'
+                        INITIATED: { target: 'initiated', cond:subscriptionNotPaused}
                     },
                 },
                 initiated:{
@@ -159,7 +159,9 @@ const machine = Machine({
         incrementSubscriptionValue
     },
     guards:{
-        subscriptionValid
+        subscriptionValid,
+        subscriptionInvalid,
+        subscriptionNotPaused
     }
 })
 
