@@ -1,8 +1,9 @@
 const { transaction } = require('objection');
-const { State, Machine, send, assign, interpret } = require('xstate');
+const { State, Machine, send, assign, interpret } = require('xstate')
 const SubscriptionState = require('../../db/models/subscriptionState')
+const defaults = require('./Defaults')
+const moment = require('moment')
 
-//change hardcoded values
 const subscriptionValid = (context, event) => {
     return context.remainingFulfillmentIntervals > 0 && !context.paused;
 }
@@ -136,7 +137,10 @@ const machine = Machine({
                 successful:{
                     entry:deductSubscriptionValue,
                     on:{
-                        RESET_CYCLE:{ target: 'pending', cond: subscriptionValid},
+                        RESET_CYCLE: {
+                            target: 'pending',
+                            cond: subscriptionValid
+                        },
                         END_CYCLE:{ 
                             target: 'ineligible', 
                             cond: subscriptionInvalid ,
@@ -166,7 +170,7 @@ const machine = Machine({
 })
 
 
-const stateManager = async (subscriptionId = 49, event = "PAYMENT_SUCCESS", params = {}) => {
+const stateManager = async (subscriptionId = 49, event = "PAYMENT_SUCCESS", params = {value:2,fulfillmentOffset:7}) => {
 
     const storedState = await SubscriptionState.query().where('subscription_id',subscriptionId)
     
@@ -224,7 +228,6 @@ const stateManager = async (subscriptionId = 49, event = "PAYMENT_SUCCESS", para
                 }
                 
                 const state = await transaction(knex, async (trx) => {
-
                     const newState = await SubscriptionState
                     .query(trx)
                     .insert({
@@ -235,8 +238,24 @@ const stateManager = async (subscriptionId = 49, event = "PAYMENT_SUCCESS", para
                         'fulfillment_state':_state.value.fulfillment,
                         'fulfillment_options':options
                     });
+                    
+                    //add successful state table, validate it with ts and defaults later on
+                    
+                    if (_state.value.fulfillment == 'successful') {
+                        
+                        var fulfillmentCycleOffset = moment(Date.now()).add(params.fulfillmentOffset, 'days').format();
+                        
+                        const fulfilledState = await newState
+                        .$relatedQuery('fulfilledState',trx)
+                        .insert({
+                            'subscription_id': subscriptionId, 
+                            'next_cycle':fulfillmentCycleOffset
+                        });
+                        return fulfilledState;
+                    }
                     return newState;
                 });
+
                 
             } catch (err) {
                 console.log(err, 'Something went wrong. State not inserted');

@@ -15,6 +15,7 @@ const pluralize = require('pluralize')
 const { transaction } = require('objection');
 const StateManager = require('./utils/SubscriptionStateManager')
 const QuantityResolver = require('./utils/QuantityResolver')
+const FrequencyResolver = require('./utils/FrequencyResolver')
 
 
 //cus_G2w3giq2XEGgBI
@@ -53,7 +54,9 @@ interface Subscription {
   brand_name:string,
   brand_logo:string,
   is_active:boolean,
-  product_photo:string
+  product_photo: string,
+  frequency_unit: string,
+  frequency_value:number
 }
 
 const getPurchase = async(stripePurchase: StripePurchase ,listingId: string,userId: string,orderDetails: any,deliveryAddress: string):Promise<Purchase> => {
@@ -84,7 +87,7 @@ const getPurchase = async(stripePurchase: StripePurchase ,listingId: string,user
 
 }
 
-const getSubscription = async(listingId: any,userId: any,quantity: string,period: string,unit: any):Promise<Subscription> => {
+const getSubscription = async(listingId: any,userId: any,quantity: string,period: string,unit: any,frequencyValue:number,frequencyUnit:string):Promise<Subscription> => {
 
   console.log(listingId);
 
@@ -111,7 +114,9 @@ const getSubscription = async(listingId: any,userId: any,quantity: string,period
         brand_name:organization.title,
         brand_logo:organization.logo,
         is_active:true,
-        product_photo:productInfo.image_url
+        product_photo: productInfo.image_url,
+        frequency_unit:frequencyUnit,
+        frequency_value:frequencyValue
       }
       
       resolve(subscription)
@@ -131,13 +136,33 @@ const updateUserPurchase = async (purchase: Purchase,subscription: Subscription,
       reject(Error('Invalid Subscription Value. Please Try Later'))
     }else{
       try{
-        const _purchase = await Purchase.query().insert(purchase);                              
-        const _subscription = await _purchase.$relatedQuery('subscription').insert(subscription);
-        StateManager(_subscription.id, 'PAYMENT_SUCCESS', {value:intervals});
+        // const _purchase = await Purchase.query().insert(purchase);                              
+        // const _subscription = await _purchase.$relatedQuery('subscription').insert(subscription);
+        const _subscription = await Subscription.query().insert(subscription)
+        const _purchase = await _subscription.$relatedQuery('purchase').insert(purchase)
+        
+        StateManager(_subscription.id, 'PAYMENT_SUCCESS', {value:intervals,fulfillmentOffset:getFrequencyOffset});
         resolve(_subscription)
       }catch(e){
         reject(e)
       }
+    }
+  })
+}
+
+const getFrequencyOffset = async (req: any): Promise<number> => {
+  return new Promise<number>(async (resolve, reject) => {
+    try {
+
+      const frequency = req.body.frequency
+     
+      let _frequencyUnit = $enum(Units.frequency).getKeyOrThrow(frequency.unit);
+      let _frequencyValue: number = frequency.value
+      let _frequency: Types.frequency = { unit: Units.frequency[_frequencyUnit], value: _frequencyValue }
+      resolve(FrequencyResolver.resolveOffset(_frequency))
+      
+    } catch (e) {
+      reject(e)
     }
   })
 }
@@ -240,6 +265,7 @@ PaymentRouter.route('/new/applePay').post(async (req:any, res:express.Response) 
   try {
     const quantity = req.body.quantity
     const length = req.body.length
+    const frequency = req.body.frequency
     const intervals = await getFulfillmentIntervals(req)
     if (intervals == 0) {
       res.status(400).json(Error('invalid interval count - ' + intervals))
@@ -254,7 +280,7 @@ PaymentRouter.route('/new/applePay').post(async (req:any, res:express.Response) 
         .then(async (result: any) => {
           try{
             const purchase = await getPurchase(result,req.body.listingId,req.user.sub,req.body.orderDetails,req.body.deliveryAddress)
-            const subscription = await getSubscription(req.body.listingId, req.user.sub, quantity, length.value, length.unit)
+            const subscription = await getSubscription(req.body.listingId, req.user.sub, quantity, length.value, length.unit,parseInt(frequency.value),frequency.unit)
             
             updateUserPurchase (purchase,subscription,intervals)
             .then(_ => {

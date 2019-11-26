@@ -47,6 +47,9 @@ const TimeFrequencyMapping = (t:Units.time,f:Units.frequency):number => {
 
 const getIntervals = (t: Types.time, f: Types.frequency): number => {
     if (t && f) {
+        if (t.value == 0) {
+            return f.value
+        }
         return (t.value*f.value*TimeFrequencyMapping(t.unit,f.unit))
     } else {
         return 0
@@ -54,8 +57,7 @@ const getIntervals = (t: Types.time, f: Types.frequency): number => {
 }
 
 export const resolve = (t: Types.time, f: Types.frequency): number => {
-    console.log(getIntervals(t, f))
-    return getIntervals(t,f)
+   return getIntervals(t, f)
 }
 
 // [{"Product":{"size":"Small"}},{"Frequency":{"unit":"per month","value":1}},{"Quantity":6},{"Length":{"unit":"Month","value":1}}]

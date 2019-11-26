@@ -22,7 +22,9 @@ const orderRoute = require('./OrderManagementRoute')
 const subscriptionRoute = require('./SubscriptionsRoute')
 const axios = require('axios');
 const SubscriptionValueResolver = require('./utils/QuantityResolver')
+const FreqResolver = require('./utils/FrequencyResolver')
 const subscriptionStateManager = require('./utils/SubscriptionStateManager')
+const defaults = require('./utils/Defaults')
 
 var jwt = require('express-jwt');
 var jwks = require('jwks-rsa');
@@ -186,7 +188,7 @@ app.get('/api/pubsub/local',async (req, res) => {
 
 app.listen(port, function () {
     console.log('Example app listening on port !', port);
-    SubscriptionValueResolver.resolve()
-  
+    // SubscriptionValueResolver.resolve()
+    FreqResolver.resolveOffset({ unit: defaults.Units.frequency.perWeek,value:1 })
     // subscriptionStateManager();
 });
