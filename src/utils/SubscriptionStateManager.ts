@@ -3,6 +3,7 @@ import { State, Machine, actions, send, interpret, Action, MachineConfig, matche
 import { Transaction } from 'knex';
 import { stateValuesEqual } from 'xstate/lib/State';
 const SubscriptionState = require('../../db/models/subscriptionState')
+const FulfilledStates = require('../../db/models/fulfilledStates')
 const moment = require('moment')
 
 
@@ -116,6 +117,7 @@ const resumeSubscription = assign({
 const subscriptionInvalid = (context:context, event:SubscriptionEvent) => {
     return context.remainingFulfillmentIntervals < 1 && !context.paused;
 }
+
 
 const deductSubscriptionValue = actions.assign<context,SubscriptionEvent>({
     remainingFulfillmentIntervals: (context:context, event:SubscriptionEvent) => {
@@ -297,14 +299,16 @@ export const stateManager = async (subscriptionId:number, event:SubscriptionEven
 
     service.onTransition(async (_state: any) => {
         
-        _state.matches(EventTypes.success)
-     
-        console.log(_state.changed)
-        if (_state.changed){
+        if (_state.changed) {
             
+            if (event.type == EventTypes.resetCycle){
+                clearFulfilledState(subscriptionId)
+            }
+            if (event.type == EventTypes.endCycle) {
+                clearFulfilledState(subscriptionId)
+            }
             
             const knex = SubscriptionState.knex();
-            
             
             try {
                 
@@ -335,7 +339,6 @@ export const stateManager = async (subscriptionId:number, event:SubscriptionEven
                         'fulfillment_options':options
                     });
                     
-                    //add successful state table, validate it with ts and defaults later on
                     
                     if (_state.matches({ fulfillment:States.successful})) {
                     
@@ -370,4 +373,9 @@ export const stateManager = async (subscriptionId:number, event:SubscriptionEven
     // Stop the service when you are no longer using it.
     service.stop();
 
+}
+
+
+const clearFulfilledState = async (subscriptionId: number) => {
+    const removedState = await FulfilledStates.query().delete().where('subscription_id',subscriptionId)
 }
