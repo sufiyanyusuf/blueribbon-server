@@ -1,14 +1,106 @@
-const { transaction } = require('objection');
-const { State, Machine, send, assign, interpret } = require('xstate')
+import { transaction } from 'objection'
+import { State, Machine, actions, send, interpret, Action, MachineConfig, matchesState } from 'xstate'
+import { Transaction } from 'knex';
+import { stateValuesEqual } from 'xstate/lib/State';
 const SubscriptionState = require('../../db/models/subscriptionState')
-const defaults = require('./Defaults')
 const moment = require('moment')
 
-const subscriptionValid = (context, event) => {
+
+const { assign } = actions;
+
+export enum EventTypes{
+    endCycle = 'END_CYCLE',
+    resetCycle = 'RESET_CYCLE',
+    activate = 'ACTIVATE',
+    pause = 'PAUSE',
+    resume = 'RESUME',
+    expired = 'EXPIRED',
+    initiated = 'INITIATED',
+    shipped = 'SHIPPED',
+    success = 'SUCCESS',
+    failure = 'FAILURE',
+    paymentSuccess = 'PAYMENT_SUCCESS',
+    paymentDeclined = 'PAYMENT_DECLINED',
+}
+
+export enum States{
+    ineligible='ineligible',
+    pending='pending',
+    initiated='initiated',
+    shipped='shipped',
+    failure='failure',
+    successful='successful',
+    inactive='inactive',
+    active='active',
+    paused='paused',
+}
+
+interface subscriptionStateRecord {
+    id: BigInteger,
+    timestamp: String,
+    subscription_id: BigInteger,
+    state: any,
+    subscription_state: string,
+    payment_state: string,
+    fulfillment_state: string,
+    fulfillment_options:Array<String>
+}
+
+interface context {
+    remainingFulfillmentIntervals: number,
+    paused:boolean   
+}
+
+interface schema {
+    states: {
+        subscription: {
+            states: {
+                inactive:{},
+                active:{},
+                paused:{}
+            }
+        },
+        payment: {
+            states: {
+                pending: {},
+                successful: {},
+                declined: {}
+            }
+        },
+        fulfillment: {
+            states: {
+                ineligible: {},
+                pending: {},
+                initiated: {},
+                shipped: {},
+                successful: {},
+                failure:{}
+            }
+        }
+        
+    }
+}
+
+export type SubscriptionEvent =
+  | { type: EventTypes.endCycle }
+  | { type: EventTypes.resetCycle  }
+  | { type: EventTypes.activate  }
+  | { type: EventTypes.pause  }
+  | { type: EventTypes.resume  }
+  | { type: EventTypes.expired  }
+  | { type: EventTypes.initiated  }
+  | { type: EventTypes.shipped  }
+  | { type: EventTypes.success  }
+  | { type: EventTypes.failure  }
+  | { type: EventTypes.paymentSuccess , value:number, fulfillmentOffset:number }
+  | { type: EventTypes.paymentDeclined  }
+
+  
+const subscriptionValid = (context: context, event: SubscriptionEvent) => {
     return context.remainingFulfillmentIntervals > 0 && !context.paused;
 }
 
-const subscriptionNotPaused = (context, event) => {
+const subscriptionNotPaused = (context:context, event:SubscriptionEvent) => {
     return (context.paused != true );
 }
 
@@ -20,35 +112,34 @@ const resumeSubscription = assign({
     paused: false
 });
 
-const subscriptionInvalid = (context, event) => {
+const subscriptionInvalid = (context:context, event:SubscriptionEvent) => {
     return context.remainingFulfillmentIntervals < 1 && !context.paused;
 }
 
-const deductSubscriptionValue = assign({
-    remainingFulfillmentIntervals: (context, event) => {
+const deductSubscriptionValue = actions.assign<context,SubscriptionEvent>({
+    remainingFulfillmentIntervals: (context:context, event:SubscriptionEvent) => {
         return context.remainingFulfillmentIntervals - 1
     }
 });
 
-const incrementSubscriptionValue = assign({
-    remainingFulfillmentIntervals: (context, event) => {
-        if (event.value) {
+const incrementSubscriptionValue = actions.assign<context,SubscriptionEvent>({
+    remainingFulfillmentIntervals: (context:context, event:SubscriptionEvent) => {
+        if (event.type == 'PAYMENT_SUCCESS' && event.value) {
             return context.remainingFulfillmentIntervals + event.value   
         } else {
             return context.remainingFulfillmentIntervals
-        }
-        
+        } 
     }
 });
 
-const machine = Machine({
+const machine = Machine<context,schema,SubscriptionEvent>({
 
     id: 'subscription',
     type: 'parallel',
     context: {
         remainingFulfillmentIntervals: 0,
         paused:false
-      },
+    },
     states: {
         subscription: {
             initial: 'inactive',
@@ -91,7 +182,7 @@ const machine = Machine({
                 successful: {
                     entry:incrementSubscriptionValue,
                     on: {
-                        END_CYCLE: 'pending',
+                        END_CYCLE: { target: 'pending', cond: subscriptionInvalid },
                         '': [
                             { target: 'pending', cond: subscriptionInvalid },
                         ],
@@ -157,25 +248,15 @@ const machine = Machine({
                 },
             }
         }
-    },
-    actions: {
-        deductSubscriptionValue,
-        incrementSubscriptionValue
-    },
-    guards:{
-        subscriptionValid,
-        subscriptionInvalid,
-        subscriptionNotPaused
     }
 })
 
-
-const stateManager = async (subscriptionId = 49, event = "PAYMENT_SUCCESS", params = {value:2,fulfillmentOffset:7}) => {
-
-    const storedState = await SubscriptionState.query().where('subscription_id',subscriptionId)
+export const stateManager = async (subscriptionId:number, event:SubscriptionEvent , params:any = {}) => {
+    console.log(subscriptionId,event,params)
+    const storedState:[subscriptionStateRecord] = await SubscriptionState.query().where('subscription_id',subscriptionId)
     
-    var lastState 
-    storedState.map(state => {
+    var lastState:subscriptionStateRecord
+    storedState.map((state:subscriptionStateRecord) => {
         if (!lastState){
             lastState = state
         }else{
@@ -185,11 +266,9 @@ const stateManager = async (subscriptionId = 49, event = "PAYMENT_SUCCESS", para
         }
     })
 
-    var service 
-
     if (lastState){
 
-        const stateDefinition = lastState.state
+        const stateDefinition:State<context,SubscriptionEvent> = lastState.state
 
         // Use State.create() to restore state from a plain object
         const previousState = State.create(stateDefinition);
@@ -198,35 +277,58 @@ const stateManager = async (subscriptionId = 49, event = "PAYMENT_SUCCESS", para
         const resolvedState = machine.resolveState(previousState);
 
         // Start the service
-        service = interpret(machine).start(resolvedState);
-
+        var service = interpret(machine).start(resolvedState);
+        
     }else {
         service = interpret(machine).start();
     }
 
-    service.onTransition(async (_state) => {
+    //any -> schema
 
+    service.onTransition(async (_state: any) => {
+        
+        _state.matches(EventTypes.success)
+     
+        console.log(_state.changed)
         if (_state.changed){
-
+            
+            
             const knex = SubscriptionState.knex();
             
+            
             try {
-
-                var options
-                if (_state.value.fulfillment == 'ineligible'){
+               
+                // var options: any
+                 
+                // if (_state.value.fulfillment == 'ineligible'){
+                //     options = (machine.states.fulfillment.states.ineligible.events)
+                // }else if (_state.value.fulfillment == 'pending'){
+                //     options = (machine.states.fulfillment.states.pending.events)
+                // }else if (_state.value.fulfillment == 'initiated'){
+                //     options = (machine.states.fulfillment.states.initiated.events)
+                // }else if (_state.value.fulfillment == 'shipped'){
+                //     options = (machine.states.fulfillment.states.shipped.events)
+                // }else if (_state.value.fulfillment == 'successful'){
+                //     options = (machine.states.fulfillment.states.successful.events)
+                // }else if (_state.value.fulfillment == 'failure'){
+                //     options = (machine.states.fulfillment.states.failure.events)
+                // }
+                
+                var options:Array<string>
+                if (_state.matches({ fulfillment:States.ineligible})) {
                     options = (machine.states.fulfillment.states.ineligible.events)
-                }else if (_state.value.fulfillment == 'pending'){
+                }else if (_state.matches({ fulfillment: States.pending})){
                     options = (machine.states.fulfillment.states.pending.events)
-                }else if (_state.value.fulfillment == 'initiated'){
+                }else if (_state.matches({ fulfillment:States.initiated})){
                     options = (machine.states.fulfillment.states.initiated.events)
-                }else if (_state.value.fulfillment == 'shipped'){
+                }else if (_state.matches({ fulfillment:States.shipped})){
                     options = (machine.states.fulfillment.states.shipped.events)
-                }else if (_state.value.fulfillment == 'successful'){
-                    options = (machine.states.fulfillment.states.successful.events)
-                }else if (_state.value.fulfillment == 'failure'){
+                }else if (_state.matches({ fulfillment:States.successful})){
+                    options = (machine.states.fulfillment.states.successful.events) //change this
+                }else if (_state.matches({ fulfillment:States.failure})){
                     options = (machine.states.fulfillment.states.failure.events)
                 }
-                
+                        
                 const state = await transaction(knex, async (trx) => {
                     const newState = await SubscriptionState
                     .query(trx)
@@ -264,11 +366,11 @@ const stateManager = async (subscriptionId = 49, event = "PAYMENT_SUCCESS", para
     });
 
     // Send events
-    service.send(event,params);
+    let _subscriptionEvent = event.type
+    console.log(_subscriptionEvent)
+    service.send(_subscriptionEvent,params);
 
     // Stop the service when you are no longer using it.
     service.stop();
 
 }
-
-module.exports = stateManager;
