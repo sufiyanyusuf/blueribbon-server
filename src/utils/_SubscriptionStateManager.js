@@ -38,7 +38,14 @@ const incrementSubscriptionValue = assign({
             return context.remainingFulfillmentIntervals
         }
         
-    }
+    },
+    fulfillmentOffset: (context, event) => {
+        if (event.type == 'PAYMENT_SUCCESS' && event.fulfillmentOffset) {
+            return context.fulfillmentOffset + event.fulfillmentOffset   
+        } else {
+            return context.fulfillmentOffset
+        } 
+    },
 });
 
 const machine = Machine({
@@ -47,7 +54,8 @@ const machine = Machine({
     type: 'parallel',
     context: {
         remainingFulfillmentIntervals: 0,
-        paused:false
+        paused: false,
+        fulfillmentOffset:0
       },
     states: {
         subscription: {
