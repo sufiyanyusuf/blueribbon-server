@@ -13,10 +13,9 @@ const Subscription = require('../db/models/subscription');
 const uuid = require('uuid/v1')
 const pluralize = require('pluralize')
 const { transaction } = require('objection');
-const StateManager = require('./utils/SubscriptionStateManager')
 const QuantityResolver = require('./utils/QuantityResolver')
 const FrequencyResolver = require('./utils/FrequencyResolver')
-
+import { stateManager, EventTypes, SubscriptionEvent } from './utils/SubscriptionStateManager'
 
 //cus_G2w3giq2XEGgBI
 
@@ -129,7 +128,7 @@ const getSubscription = async(listingId: any,userId: any,quantity: string,period
   
 }
 
-const updateUserPurchase = async (purchase: Purchase,subscription: Subscription, intervals:number) => {
+const updateUserPurchase = async (purchase: Purchase,subscription: Subscription, intervals:number, frequencyOffset:number) => {
   return new Promise (async (resolve, reject) => {
     //add a transaction for this:
     if (intervals == 0) {
@@ -139,9 +138,13 @@ const updateUserPurchase = async (purchase: Purchase,subscription: Subscription,
         // const _purchase = await Purchase.query().insert(purchase);                              
         // const _subscription = await _purchase.$relatedQuery('subscription').insert(subscription);
         const _subscription = await Subscription.query().insert(subscription)
+
         const _purchase = await _subscription.$relatedQuery('purchase').insert(purchase)
+        const _subscriptionId: number = _subscription.id
+        const eventType: SubscriptionEvent = {type:EventTypes.paymentSuccess,value:intervals,fulfillmentOffset:frequencyOffset}
         
-        StateManager(_subscription.id, 'PAYMENT_SUCCESS', {value:intervals,fulfillmentOffset:getFrequencyOffset});
+        stateManager(_subscriptionId,eventType,{value:intervals,fulfillmentOffset:frequencyOffset})
+        // StateManager(_subscription.id, 'PAYMENT_SUCCESS', {value:intervals,fulfillmentOffset:getFrequencyOffset});
         resolve(_subscription)
       }catch(e){
         reject(e)
@@ -267,6 +270,7 @@ PaymentRouter.route('/new/applePay').post(async (req:any, res:express.Response) 
     const length = req.body.length
     const frequency = req.body.frequency
     const intervals = await getFulfillmentIntervals(req)
+    const fulfillmentCycleOffset = await getFrequencyOffset(req)
     if (intervals == 0) {
       res.status(400).json(Error('invalid interval count - ' + intervals))
     } else {
@@ -282,7 +286,7 @@ PaymentRouter.route('/new/applePay').post(async (req:any, res:express.Response) 
             const purchase = await getPurchase(result,req.body.listingId,req.user.sub,req.body.orderDetails,req.body.deliveryAddress)
             const subscription = await getSubscription(req.body.listingId, req.user.sub, quantity, length.value, length.unit,parseInt(frequency.value),frequency.unit)
             
-            updateUserPurchase (purchase,subscription,intervals)
+            updateUserPurchase (purchase,subscription,intervals,fulfillmentCycleOffset)
             .then(_ => {
               res.status(200)
             })

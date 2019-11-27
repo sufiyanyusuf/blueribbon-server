@@ -141,9 +141,10 @@ OrderManagementRouter.route('/getOrders/:orderState').get(async function (req:ex
 })
 
 OrderManagementRouter.route('/updateFulfillmentState').post(async function (req, res) {
+    
     const subscriptionId:number = req.body.subscriptionId;
     const action: string = req.body.action; 
-   
+  
     let subscriptionEvent = getFulfillmentEventType (action)
     
     if (!subscriptionEvent) {

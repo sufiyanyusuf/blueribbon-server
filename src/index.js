@@ -176,7 +176,7 @@ app.get('/api/test',async (req, res) => {
 app.get('/api/pubsub/local',async (req, res) => {
     //add auth middleware to this later on
     console.log('subscription check req received on localhost');
-    SubscriptionTrigger.checkCycle()
+    // SubscriptionTrigger.checkCycle()
     //move this trigger to proper api and update pubsub
     res.status(200).json('ok')
 });

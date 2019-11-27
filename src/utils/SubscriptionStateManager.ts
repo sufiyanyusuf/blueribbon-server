@@ -48,7 +48,8 @@ interface subscriptionStateRecord {
 
 interface context {
     remainingFulfillmentIntervals: number,
-    paused:boolean   
+    paused: boolean,
+    fulfillmentOffset:number
 }
 
 interface schema {
@@ -129,8 +130,16 @@ const incrementSubscriptionValue = actions.assign<context,SubscriptionEvent>({
         } else {
             return context.remainingFulfillmentIntervals
         } 
-    }
+    },
+    fulfillmentOffset: (context:context, event:SubscriptionEvent) => {
+        if (event.type == 'PAYMENT_SUCCESS' && event.fulfillmentOffset) {
+            return context.fulfillmentOffset + event.fulfillmentOffset   
+        } else {
+            return context.fulfillmentOffset
+        } 
+    },
 });
+
 
 const machine = Machine<context,schema,SubscriptionEvent>({
 
@@ -138,7 +147,8 @@ const machine = Machine<context,schema,SubscriptionEvent>({
     type: 'parallel',
     context: {
         remainingFulfillmentIntervals: 0,
-        paused:false
+        paused: false,
+        fulfillmentOffset:0
     },
     states: {
         subscription: {
@@ -297,22 +307,6 @@ export const stateManager = async (subscriptionId:number, event:SubscriptionEven
             
             
             try {
-               
-                // var options: any
-                 
-                // if (_state.value.fulfillment == 'ineligible'){
-                //     options = (machine.states.fulfillment.states.ineligible.events)
-                // }else if (_state.value.fulfillment == 'pending'){
-                //     options = (machine.states.fulfillment.states.pending.events)
-                // }else if (_state.value.fulfillment == 'initiated'){
-                //     options = (machine.states.fulfillment.states.initiated.events)
-                // }else if (_state.value.fulfillment == 'shipped'){
-                //     options = (machine.states.fulfillment.states.shipped.events)
-                // }else if (_state.value.fulfillment == 'successful'){
-                //     options = (machine.states.fulfillment.states.successful.events)
-                // }else if (_state.value.fulfillment == 'failure'){
-                //     options = (machine.states.fulfillment.states.failure.events)
-                // }
                 
                 var options:Array<string>
                 if (_state.matches({ fulfillment:States.ineligible})) {
@@ -343,17 +337,20 @@ export const stateManager = async (subscriptionId:number, event:SubscriptionEven
                     
                     //add successful state table, validate it with ts and defaults later on
                     
-                    if (_state.value.fulfillment == 'successful') {
-                        
-                        var fulfillmentCycleOffset = moment(Date.now()).add(params.fulfillmentOffset, 'days').format();
-                        
-                        const fulfilledState = await newState
-                        .$relatedQuery('fulfilledState',trx)
-                        .insert({
-                            'subscription_id': subscriptionId, 
-                            'next_cycle':fulfillmentCycleOffset
-                        });
-                        return fulfilledState;
+                    if (_state.matches({ fulfillment:States.successful})) {
+                    
+                        if (_state.context) {
+                            var fulfillmentCycleOffset = moment(Date.now()).add(_state.context.fulfillmentOffset, 'days').format();
+                            // console.log('offset', params.fulfillmentCycleOffset)
+                            
+                            const fulfilledState = await newState
+                            .$relatedQuery('fulfilledState',trx)
+                            .insert({
+                                'subscription_id': subscriptionId, 
+                                'next_cycle':fulfillmentCycleOffset
+                            });
+                            return fulfilledState;
+                        }
                     }
                     return newState;
                 });
