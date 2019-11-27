@@ -1,13 +1,26 @@
-const express = require('express');
+import express from 'express';
+import { stateManager, EventTypes, SubscriptionEvent } from './utils/SubscriptionStateManager'
+import {$enum} from "ts-enum-util";
+import { type } from 'os';
 const OrderManagementRouter = express.Router();
-const StateManager = require('./utils/SubscriptionStateManager')
 const SubscriptionState = require('../db/models/subscriptionState')
 const Subscription = require('../db/models/subscription')
 
 
-const getCurrentStateforSubscription = (subscriptionStates) => {
+interface subscriptionState {
+    id:number,
+    subscription_id: number, 
+    state: any, 
+    subscription_state:string 
+    payment_state:string, 
+    fulfillment_state:string,
+    fulfillment_options: string,
+    timestamp:string
+}
+
+const getCurrentStateforSubscription = (subscriptionStates:Array<subscriptionState>) => {
     // console.log(subscriptionStates)
-    var currentState;
+    var currentState:subscriptionState;
     subscriptionStates.map(state => {
         if (!currentState){
             currentState = state
@@ -20,8 +33,8 @@ const getCurrentStateforSubscription = (subscriptionStates) => {
     return currentState;
 }
 
-const getSubscriptionStatesForId = (subscription, id) => {
-    const states = subscription.filter((state) => {
+const getSubscriptionStatesForId = (subscriptions:Array<subscriptionState>, id:number) => {
+    const states = subscriptions.filter((state) => {
         if (state.subscription_id == id) {
             return state
         }
@@ -29,8 +42,8 @@ const getSubscriptionStatesForId = (subscription, id) => {
     return states
 }
 
-const getSubscriptionIdList = (states) => {
-    var idList=[];
+const getSubscriptionIdList = (states:Array<subscriptionState>) => {
+    var idList:Array<number>=[];
     states.map((state)=>{
         if (!(idList.includes(state.subscription_id))){
             idList.push(state.subscription_id)
@@ -39,17 +52,40 @@ const getSubscriptionIdList = (states) => {
     return idList;
 }
 
+const getFulfillmentEventType = (action: string): SubscriptionEvent => {
+    
+    switch (action) {
+        case EventTypes.initiated:
+            return { type: EventTypes.initiated }
+            break
+        case EventTypes.shipped:
+            return { type: EventTypes.shipped }
+            break
+        case EventTypes.failure:
+            return { type: EventTypes.failure }
+            break
+        case EventTypes.success:
+            return { type: EventTypes.success }
+            break
+        default:
+            return null
+    }
 
-OrderManagementRouter.route('/getActiveOrders').get(async function (req, res) {
+}
+
+
+OrderManagementRouter.route('/getActiveOrders').get(async function (req:express.Request, res:express.Response) {
 })
 
-OrderManagementRouter.route('/getOrders/:orderState').get(async function (req, res) {
+OrderManagementRouter.route('/getOrders/:orderState').get(async function (req:express.Request, res:express.Response) {
     try{
 
         const orderState = req.params.orderState
         console.log(orderState)
         const storedStates = await SubscriptionState.query() //query by org id later
+
         const idList = getSubscriptionIdList(storedStates)
+
         const currentSubscriptionStatesById = idList.map(id => {
             const states = getSubscriptionStatesForId(storedStates,id)
             return getCurrentStateforSubscription(states)
@@ -69,7 +105,7 @@ OrderManagementRouter.route('/getOrders/:orderState').get(async function (req, r
 
         if (matchingOrderStates.length>0){
 
-            const orders = await Promise.all(matchingOrderStates.map(async orderState => {
+            const orders = await Promise.all(matchingOrderStates.map(async (orderState:any) => {
     
                 try {
     
@@ -105,10 +141,17 @@ OrderManagementRouter.route('/getOrders/:orderState').get(async function (req, r
 })
 
 OrderManagementRouter.route('/updateFulfillmentState').post(async function (req, res) {
-    const subscriptionId = req.body.subscriptionId;
-    const action = req.body.action;
-
-    StateManager(subscriptionId,action);
+    const subscriptionId:number = req.body.subscriptionId;
+    const action: string = req.body.action; 
+   
+    let subscriptionEvent = getFulfillmentEventType (action)
+    
+    if (!subscriptionEvent) {
+        res.status(400).json('not allowed')
+    } else {
+        stateManager(subscriptionId,subscriptionEvent);
+    }
+    
 })
 
 //send notifications

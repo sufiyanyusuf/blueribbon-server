@@ -32,36 +32,6 @@ export namespace Types {
 }
 
 
-export namespace StateMachine{
-
-    export enum States{
-        ineligible='ineligible',
-        initiated='initiated',
-        shipped='shipped',
-        failure='failure',
-        successful='successful',
-        inactive='inactive',
-        active='active',
-        paused='paused',
-
-    }
-    export enum events{
-        endCycle = 'END_CYCLE',
-        resetCycle = 'RESET_CYCLE',
-        activate = 'ACTIVATE',
-        pause = 'PAUSE',
-        resume = 'RESUME',
-        expired = 'EXPIRED',
-        initiated = 'INITIATED',
-        shipped = 'SHIPPED',
-        success = 'SUCCESS',
-        failure = 'FAILURE',
-        paymentSuccess = 'PAYMENT_SUCCESS',
-        paymentDeclined = 'PAYMENT_DECLINED',
-
-    }
-}
-
 
 
 
