@@ -1,25 +1,15 @@
-
 const { transaction } = require('objection');
-const { State, Machine, send, assign, interpret } = require('xstate');
+const { State, Machine, send, assign, interpret } = require('xstate')
 const SubscriptionState = require('../../db/models/subscriptionState')
-
-
-
-const deductSubscriptionValue = assign({
-    remainingFulfillmentIntervals: (context, event) => context.remainingFulfillmentIntervals - 1
-});
-
-const incrementSubscriptionValue = assign({
-    remainingFulfillmentIntervals: (context, event) => context.remainingFulfillmentIntervals + 2
-});
+const defaults = require('./Defaults')
+const moment = require('moment')
 
 const subscriptionValid = (context, event) => {
+    return context.remainingFulfillmentIntervals > 0 && !context.paused;
+}
 
-    return context.remainingFulfillmentIntervals > 1 && !context.paused;
-  }
-
-const subscriptionPaused = (context, event) => {
-    return context.paused;
+const subscriptionNotPaused = (context, event) => {
+    return (context.paused != true );
 }
 
 const pauseSubscription = assign({
@@ -31,9 +21,25 @@ const resumeSubscription = assign({
 });
 
 const subscriptionInvalid = (context, event) => {
-    return context.remainingFulfillmentIntervals <= 1 && !context.paused;
+    return context.remainingFulfillmentIntervals < 1 && !context.paused;
 }
 
+const deductSubscriptionValue = assign({
+    remainingFulfillmentIntervals: (context, event) => {
+        return context.remainingFulfillmentIntervals - 1
+    }
+});
+
+const incrementSubscriptionValue = assign({
+    remainingFulfillmentIntervals: (context, event) => {
+        if (event.value) {
+            return context.remainingFulfillmentIntervals + event.value   
+        } else {
+            return context.remainingFulfillmentIntervals
+        }
+        
+    }
+});
 
 const machine = Machine({
 
@@ -85,7 +91,7 @@ const machine = Machine({
                 successful: {
                     entry:incrementSubscriptionValue,
                     on: {
-                        END_CYCLE: 'pending',
+                        END_CYCLE: { target: 'pending', cond: subscriptionInvalid },
                         '': [
                             { target: 'pending', cond: subscriptionInvalid },
                         ],
@@ -111,7 +117,7 @@ const machine = Machine({
                 },
                 pending:{
                     on:{
-                        INITIATED:'initiated'
+                        INITIATED: { target: 'initiated', cond:subscriptionNotPaused}
                     },
                 },
                 initiated:{
@@ -129,9 +135,12 @@ const machine = Machine({
                     },
                 },
                 successful:{
-                    exit:deductSubscriptionValue,
+                    entry:deductSubscriptionValue,
                     on:{
-                        RESET_CYCLE:{ target: 'pending', cond: subscriptionValid},
+                        RESET_CYCLE: {
+                            target: 'pending',
+                            cond: subscriptionValid
+                        },
                         END_CYCLE:{ 
                             target: 'ineligible', 
                             cond: subscriptionInvalid ,
@@ -154,13 +163,14 @@ const machine = Machine({
         incrementSubscriptionValue
     },
     guards:{
-        subscriptionValid
+        subscriptionValid,
+        subscriptionInvalid,
+        subscriptionNotPaused
     }
 })
 
 
-
-const stateManager = async (subscriptionId = 48) => {
+const stateManager = async (subscriptionId = 49, event = "PAYMENT_SUCCESS", params = {value:2,fulfillmentOffset:7}) => {
 
     const storedState = await SubscriptionState.query().where('subscription_id',subscriptionId)
     
@@ -194,39 +204,70 @@ const stateManager = async (subscriptionId = 48) => {
         service = interpret(machine).start();
     }
 
+    service.onTransition(async (_state) => {
 
-service.onTransition(async (_state) => {
+        if (_state.changed){
 
-    if (_state.changed){
+            const knex = SubscriptionState.knex();
+            
+            try {
 
-        const knex = SubscriptionState.knex();
-        
-        try {
-            const state = await transaction(knex, async (trx) => {
-
-                const newState = await SubscriptionState
-                .query(trx)
-                .insert({
-                    'subscription_id': 48, 
-                    'state': _state, 
-                    'subscription_state':_state.value.subscription, 
-                    'payment_state':_state.value.payment, 
-                    'fulfillment_state':_state.value.fulfillment
+                var options
+                if (_state.value.fulfillment == 'ineligible'){
+                    options = (machine.states.fulfillment.states.ineligible.events)
+                }else if (_state.value.fulfillment == 'pending'){
+                    options = (machine.states.fulfillment.states.pending.events)
+                }else if (_state.value.fulfillment == 'initiated'){
+                    options = (machine.states.fulfillment.states.initiated.events)
+                }else if (_state.value.fulfillment == 'shipped'){
+                    options = (machine.states.fulfillment.states.shipped.events)
+                }else if (_state.value.fulfillment == 'successful'){
+                    options = (machine.states.fulfillment.states.successful.events)
+                }else if (_state.value.fulfillment == 'failure'){
+                    options = (machine.states.fulfillment.states.failure.events)
+                }
+                
+                const state = await transaction(knex, async (trx) => {
+                    const newState = await SubscriptionState
+                    .query(trx)
+                    .insert({
+                        'subscription_id': subscriptionId, 
+                        'state': _state, 
+                        'subscription_state':_state.value.subscription, 
+                        'payment_state':_state.value.payment, 
+                        'fulfillment_state':_state.value.fulfillment,
+                        'fulfillment_options':options
+                    });
+                    
+                    //add successful state table, validate it with ts and defaults later on
+                    
+                    if (_state.value.fulfillment == 'successful') {
+                        
+                        var fulfillmentCycleOffset = moment(Date.now()).add(params.fulfillmentOffset, 'days').format();
+                        
+                        const fulfilledState = await newState
+                        .$relatedQuery('fulfilledState',trx)
+                        .insert({
+                            'subscription_id': subscriptionId, 
+                            'next_cycle':fulfillmentCycleOffset
+                        });
+                        return fulfilledState;
+                    }
+                    return newState;
                 });
-                return newState;
-            });
-            console.log('new state :',_state.value);
-        } catch (err) {
-            console.log(err, 'Something went wrong. State not inserted');
+
+                
+            } catch (err) {
+                console.log(err, 'Something went wrong. State not inserted');
+            }
         }
-    }
-});
+    });
 
-// Send events
-service.send('PAYMENT_SUCCESS');
+    // Send events
+    service.send(event,params);
 
-// Stop the service when you are no longer using it.
-service.stop();
+    // Stop the service when you are no longer using it.
+    service.stop();
 
 }
 

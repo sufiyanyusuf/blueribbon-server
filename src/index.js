@@ -18,9 +18,15 @@ const serviceLocationRoute = require('./Listing/serviceLocationRoute')
 const uploadRoute = require('./Listing/uploadRoute')
 const paymentRoute = require('./PaymentRoute')
 const userRoute = require('./userRoute')
+const orderRoute = require('./OrderManagementRoute')
 const subscriptionRoute = require('./SubscriptionsRoute')
+const schedulerRoute = require('./SchedulerRoute')
 const axios = require('axios');
-const subscriptionStateManager = require('./utils/SubscriptionStateManager');
+const SubscriptionValueResolver = require('./utils/QuantityResolver')
+const FreqResolver = require('./utils/FrequencyResolver')
+const subscriptionStateManager = require('./utils/SubscriptionStateManager')
+const defaults = require('./utils/Defaults')
+const SubscriptionTrigger = require('./utils/SubscriptionTriggers')
 
 var jwt = require('express-jwt');
 var jwks = require('jwks-rsa');
@@ -53,10 +59,9 @@ var orgJwtCheck = jwt({
 // app.use(jwtCheck);
 
 
-  app.use(responseTime(function (req, res, time) {
-    console.log(time)
-  }))
-
+app.use(responseTime(function (req, res, time) {
+console.log(time)
+}))
 
 app.use(cors())
 app.use(bodyParser.json());
@@ -68,9 +73,9 @@ app.use ('/api/payment',jwtCheck,paymentRoute);
 app.use ('/api/modifier',modifierRoute);
 app.use ('/api/upload',uploadRoute);
 app.use ('/api/subscriptions',jwtCheck,subscriptionRoute)
-
-app.use('/api/user', jwtCheck, userRoute);
-
+app.use ('/orderManagement',orderRoute)
+app.use ('/api/user', jwtCheck, userRoute);
+app.use ('/scheduler',schedulerRoute)
 
 app.get('/api/productInfo/:id', (req, res) => {
     let id = parseInt(req.params.id)
@@ -170,20 +175,24 @@ app.get('/api/test',async (req, res) => {
 
 app.get('/api/pubsub/local',async (req, res) => {
     //add auth middleware to this later on
-  console.log('subscription check req received on localhost');
-  res.status(200).json('ok')
+    console.log('subscription check req received on localhost');
+    // SubscriptionTrigger.checkCycle()
+    //move this trigger to proper api and update pubsub
+    res.status(200).json('ok')
 });
 
-  app.post('/api/pubsub',async (req, res) => {
-      //add auth middleware to this later on
-    console.log('subscription check req received');
-    axios.get('https://3458a3ef.ngrok.io/api/pubsub/local')
-    res.status(204).json('done');
+app.post('/api/pubsub',async (req, res) => {
+    //add auth middleware to this later on
+console.log('subscription check req received');
+axios.get('https://3458a3ef.ngrok.io/api/pubsub/local')
+res.status(204).json('done');
 
-    
-  });
+});
 
 app.listen(port, function () {
-    console.log('Example app listening on port !',port);
+    console.log('Example app listening on port !', port);
+    // SubscriptionValueResolver.resolve()
+    // FreqResolver.resolveOffset({ unit: defaults.Units.frequency.perWeek,value:1 })
     // subscriptionStateManager();
+    // updateSubscriptionCycles.check()
 });

@@ -15,11 +15,11 @@ class Purchases extends Model {
 
     return{
       subscription:{
-        relation: Model.HasOneRelation,
+        relation: Model.BelongsToOneRelation,
         modelClass:subscription,
         join:{
-            from : 'Purchases.purchase_id',
-            to : 'User_Subscriptions.purchase_id'
+            from : 'Purchases.subscription_id',
+            to : 'User_Subscriptions.id'
         }
       }
     }
