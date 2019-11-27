@@ -5,29 +5,29 @@ import { stateManager, EventTypes, SubscriptionEvent } from './SubscriptionState
 import {resolveOffset} from './FrequencyResolver'
 
 
-    interface fulfillmentState {
-        id: number,
-        subscription_id: number,
-        next_cycle:string
-    }
+interface fulfillmentState {
+    id: number,
+    subscription_id: number,
+    next_cycle:string
+}
+
+export const checkCycle = async () => {
+    var currentTimestamp = moment(Date.now()).format();
+    const dueFulfilledStates = await FulfilledStates.query().whereRaw('next_cycle < ?', [currentTimestamp]) 
     
-    export const checkCycle = async () => {
-        var currentTimestamp = moment(Date.now()).format();
-        const dueFulfilledStates = await FulfilledStates.query().whereRaw('next_cycle < ?', [currentTimestamp]) 
-       
-        dueFulfilledStates.map((state: fulfillmentState) => {
+    dueFulfilledStates.map((state: fulfillmentState) => {
 
-            let resetCycleEvent:SubscriptionEvent = {type:EventTypes.resetCycle}
-            stateManager(state.subscription_id, resetCycleEvent)
+        let resetCycleEvent:SubscriptionEvent = {type:EventTypes.resetCycle}
+        stateManager(state.subscription_id, resetCycleEvent)
 
-            let endCycleEvent:SubscriptionEvent = {type:EventTypes.endCycle}
-            stateManager(state.subscription_id, endCycleEvent)
-           
-            //remove record from fulfilled state
-        })
+        let endCycleEvent:SubscriptionEvent = {type:EventTypes.endCycle}
+        stateManager(state.subscription_id, endCycleEvent)
+        
+        //remove record from fulfilled state
+    })
 
-        //add handling to remove record from this table in state machine logic
-    }
+    //add handling to remove record from this table in state machine logic
+}
     
 
 
