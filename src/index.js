@@ -160,20 +160,6 @@ app.get('/api/search/serviceAreas/:query', async (req, res) => {
     // res.json(areas);
 })
 
-app.get('/api/test',async (req, res) => {
-  
-    try{
-      const purchases = await Purchase
-      .query()
-      .eager('[subscription]')
-    
-      res.status(200).json(purchases)
-
-    }catch(e){
-      res.status(404)
-    }
-  });
-
 app.get('/api/pubsub/local',async (req, res) => {
     //add auth middleware to this later on
     console.log('subscription check req received on localhost');
