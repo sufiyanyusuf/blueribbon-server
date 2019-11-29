@@ -27,6 +27,7 @@ const FreqResolver = require('./utils/FrequencyResolver')
 const subscriptionStateManager = require('./utils/SubscriptionStateManager')
 const defaults = require('./utils/Defaults')
 const SubscriptionTrigger = require('./utils/SubscriptionTriggers')
+const { sendNotification } = require('./Notifications')
 
 var jwt = require('express-jwt');
 var jwks = require('jwks-rsa');
@@ -191,6 +192,7 @@ res.status(204).json('done');
 
 app.listen(port, function () {
     console.log('Example app listening on port !', port);
+    // sendNotification()
     // SubscriptionValueResolver.resolve()
     // FreqResolver.resolveOffset({ unit: defaults.Units.frequency.perWeek,value:1 })
     // subscriptionStateManager();
