@@ -14,19 +14,35 @@ interface fulfillmentState {
 export const checkCycle = async () => {
     var currentTimestamp = moment(Date.now()).format();
     const dueFulfilledStates = await FulfilledStates.query().whereRaw('next_cycle < ?', [currentTimestamp]) 
-    
-    dueFulfilledStates.map((state: fulfillmentState) => {
+    // console.log(dueFulfilledStates)
+    let resetStatuses = await Promise.all(
+        dueFulfilledStates.map(async (state: fulfillmentState) => {
+            try { 
+                let resetCycleEvent:SubscriptionEvent = {type:EventTypes.resetCycle}
+                let resetStatus = await stateManager(state.subscription_id, resetCycleEvent)
+                return resetStatus
+            } catch (e) {
+                console.log(e)
+                return e
+            }
+        })
+    ) 
 
-        let resetCycleEvent:SubscriptionEvent = {type:EventTypes.resetCycle}
-        stateManager(state.subscription_id, resetCycleEvent)
+    let endStatuses = await Promise.all(
+        dueFulfilledStates.map(async (state: fulfillmentState) => {
+            try { 
+                let endCycleEvent:SubscriptionEvent = {type:EventTypes.endCycle}
+                let endStatus = await stateManager(state.subscription_id, endCycleEvent)
+                return endStatus
+            }catch(e){
+                console.log(e)
+                return e
+            }
+        })
+    )
 
-        let endCycleEvent:SubscriptionEvent = {type:EventTypes.endCycle}
-        stateManager(state.subscription_id, endCycleEvent)
-        
-        //remove record from fulfilled state
-    })
+    console.log('resets - ',resetStatuses, ' ends - ',endStatuses)
 
-    //add handling to remove record from this table in state machine logic
 }
     
 

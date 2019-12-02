@@ -1,7 +1,5 @@
 import express from 'express';
 import { stateManager, EventTypes, SubscriptionEvent } from './utils/SubscriptionStateManager'
-import {$enum} from "ts-enum-util";
-import { type } from 'os';
 const OrderManagementRouter = express.Router();
 const SubscriptionState = require('../db/models/subscriptionState')
 const Subscription = require('../db/models/subscription')
@@ -150,7 +148,12 @@ OrderManagementRouter.route('/updateFulfillmentState').post(async function (req,
     if (!subscriptionEvent) {
         res.status(400).json('not allowed')
     } else {
-        stateManager(subscriptionId,subscriptionEvent);
+        try { 
+            const updated = await stateManager(subscriptionId, subscriptionEvent);
+            res.status(200).json(updated)
+        } catch (e) {
+            res.status(404).json(e)
+        }
     }
     
 })

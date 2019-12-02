@@ -1,5 +1,6 @@
 {
-   "compilerOptions": {
+  "compileOnSave": true,
+  "compilerOptions": {
       "module": "commonjs",
       "rootDir": "src",
       "moduleResolution": "node",

@@ -21,13 +21,14 @@ const userRoute = require('./userRoute')
 const orderRoute = require('./OrderManagementRoute')
 const subscriptionRoute = require('./SubscriptionsRoute')
 const schedulerRoute = require('./SchedulerRoute')
+const subscriptionManagementRoute = require ('./SubscriptionManagementRoute')
 const axios = require('axios');
 const SubscriptionValueResolver = require('./utils/QuantityResolver')
 const FreqResolver = require('./utils/FrequencyResolver')
 const subscriptionStateManager = require('./utils/SubscriptionStateManager')
 const defaults = require('./utils/Defaults')
 const SubscriptionTrigger = require('./utils/SubscriptionTriggers')
-const { sendNotification } = require('./Notifications')
+const { test } = require('./Notifications')
 
 var jwt = require('express-jwt');
 var jwks = require('jwks-rsa');
@@ -68,15 +69,17 @@ app.use(cors())
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use ('/api/listing',listingRoute);
-app.use ('/api/serviceLocations',serviceLocationRoute);
 app.use ('/api/payment',jwtCheck,paymentRoute);
+app.use ('/api/subscriptions',jwtCheck,subscriptionRoute)
+app.use ('/api/user', jwtCheck, userRoute);
+app.use ('/subscriptionManagment', jwtCheck, subscriptionManagementRoute);
+
+app.use ('/orderManagement',orderRoute)
+app.use ('/scheduler',schedulerRoute)
 app.use ('/api/modifier',modifierRoute);
 app.use ('/api/upload',uploadRoute);
-app.use ('/api/subscriptions',jwtCheck,subscriptionRoute)
-app.use ('/orderManagement',orderRoute)
-app.use ('/api/user', jwtCheck, userRoute);
-app.use ('/scheduler',schedulerRoute)
+app.use ('/api/serviceLocations',serviceLocationRoute);
+app.use ('/api/listing',listingRoute);
 
 app.get('/api/productInfo/:id', (req, res) => {
     let id = parseInt(req.params.id)
@@ -178,6 +181,8 @@ res.status(204).json('done');
 
 app.listen(port, function () {
     console.log('Example app listening on port !', port);
+    // SubscriptionTrigger.checkCycle()
+    // test()
     // sendNotification()
     // SubscriptionValueResolver.resolve()
     // FreqResolver.resolveOffset({ unit: defaults.Units.frequency.perWeek,value:1 })

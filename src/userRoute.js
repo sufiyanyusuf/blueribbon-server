@@ -26,7 +26,6 @@ const getAccessToken = new Promise (async (resolve, reject) => {
     })
 })
 
-
 const verifyLocalProfile = async (id) => {
     return new Promise (async (resolve, reject) => {
         try {
@@ -148,6 +147,44 @@ const addUserLocation = async (userId, req) => {
     })
 }
 
+const addUserNotificationToken = async (userId, token) => {
+    console.log('add',userId, token)
+    return new Promise (async (resolve, reject) => {
+        try {
+            if (!token) {
+                reject()
+            } else {
+                const user = await User.query()
+                .where('user_id',userId)
+                .patch({
+                  notification_token: token
+                })
+                console.log(user)
+                resolve(user);
+            }
+        }catch (e){
+            reject (e.error);
+        }
+    })
+}
+
+const removeUserNotificationToken = async (userId) => {
+    console.log('remove',userId)
+    return new Promise (async (resolve, reject) => {
+        try {
+            const user = await User.query()
+            .where('user_id',userId)
+            .patch({
+              notification_token: null
+            })
+            console.log(user)
+            resolve(user);
+        }catch (e){
+            reject (e.error);
+        }
+    })
+}
+
 
 
 UserRouter.route('/checkLocationEligibility').post(async (req,res) => {
@@ -163,6 +200,34 @@ UserRouter.route('/checkLocationEligibility').post(async (req,res) => {
     
 })
 
+UserRouter.route('/isNew').get(async (req, res) => { 
+    verifyLocalProfile(req.user.sub).then(value => {
+        res.status(200).json(!value)
+    }).catch(e => {
+        res.status(404).json(e)
+    })
+})
+
+UserRouter.route('/addNotificationToken').post(async (req, res) => { 
+   
+    try {
+        const token = req.body.token
+        const user = await addUserNotificationToken(req.user.sub,token)
+        res.status(200).json(true)
+    } catch (e){
+        res.status(404).json(e)
+    }
+})
+
+UserRouter.route('/removeNotificationToken').post(async (req, res) => { 
+
+    try {
+        const user = await removeUserNotificationToken(req.user.sub)
+        res.status(200).json(true)
+    } catch (e){
+        res.status(404).json(e)
+    }
+})
 
 UserRouter.route('/updateInfo').post(async (req,res) => {
 

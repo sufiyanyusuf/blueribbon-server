@@ -135,16 +135,12 @@ const updateUserPurchase = async (purchase: Purchase,subscription: Subscription,
       reject(Error('Invalid Subscription Value. Please Try Later'))
     }else{
       try{
-        // const _purchase = await Purchase.query().insert(purchase);                              
-        // const _subscription = await _purchase.$relatedQuery('subscription').insert(subscription);
         const _subscription = await Subscription.query().insert(subscription)
-
         const _purchase = await _subscription.$relatedQuery('purchase').insert(purchase)
         const _subscriptionId: number = _subscription.id
         const eventType: SubscriptionEvent = {type:EventTypes.paymentSuccess,value:intervals,fulfillmentOffset:frequencyOffset}
         
-        stateManager(_subscriptionId,eventType,{value:intervals,fulfillmentOffset:frequencyOffset})
-        // StateManager(_subscription.id, 'PAYMENT_SUCCESS', {value:intervals,fulfillmentOffset:getFrequencyOffset});
+        const purchased:boolean = await stateManager(_subscriptionId,eventType,{value:intervals,fulfillmentOffset:frequencyOffset})
         resolve(_subscription)
       }catch(e){
         reject(e)
