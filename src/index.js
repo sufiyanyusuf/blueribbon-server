@@ -180,7 +180,7 @@ res.status(204).json('done');
 });
 
 app.listen(port, function () {
-    console.log('Example app listening on port !', port);
+    console.log('Blueribbon listening on port ', port);
     // SubscriptionTrigger.checkCycle()
     // test()
     // sendNotification()

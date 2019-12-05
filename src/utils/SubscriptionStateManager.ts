@@ -4,6 +4,7 @@ import { Transaction } from 'knex';
 import { stateValuesEqual } from 'xstate/lib/State';
 import { notifySubscriber, NotificationEvent, NotificationTypes } from './../Notifications';
 const SubscriptionState = require('../../db/models/subscriptionState')
+const UserSubscription = require('../../db/models/subscription')
 const FulfilledStates = require('../../db/models/fulfilledStates')
 const moment = require('moment')
 
@@ -270,33 +271,34 @@ export const stateManager = async (subscriptionId: number, event: SubscriptionEv
         // console.log(subscriptionId, event, params)
         
         const storedState:[subscriptionStateRecord] = await SubscriptionState.query().where('subscription_id',subscriptionId)
+        const subscription = await UserSubscription.query().findById(subscriptionId)
         
-        var lastState:subscriptionStateRecord
-        storedState.map((state:subscriptionStateRecord) => {
-            if (!lastState){
-                lastState = state
-            }else{
-                if (lastState.id < state.id) {
-                    lastState = state
-                }
-            }
-        })
+        var lastState: subscriptionStateRecord
+        lastState = await subscription.$relatedQuery('currentState')   
+        // console.log(lastState)
+        // if (!lastState) {
+        //     storedState.map((state:subscriptionStateRecord) => {
+        //         if (!lastState){
+        //             lastState = state
+        //         }else{
+        //             if (lastState.id < state.id) {
+        //                 lastState = state
+        //             }
+        //         }
+        //     })
+        // }
 
         let service = interpret(machine);
 
         service.onTransition(async (state) => {
   
-         
-            console.log(state.changed)
+            // console.log(state.changed)
 
             if (state.changed === false){
-                console.log('no change')
                 reject('no change')
             } 
 
             if (state.changed === true) {
-                
-                console.log (state.value)
                 let _state = <any> state
                 const knex = SubscriptionState.knex();
                 
@@ -373,17 +375,26 @@ export const stateManager = async (subscriptionId: number, event: SubscriptionEv
                             'fulfillment_state':_state.value.fulfillment,
                             'fulfillment_options':options
                         });
+
+                        var isActive = !(_state.value.subscription == States.inactive)
                         
-                        
+
+                        const updatedUserSubscription = await UserSubscription
+                            .query(trx)
+                            .findById(subscriptionId)
+                            .patch({
+                                'current_state': newState.id,
+                                'is_active':isActive
+                             });
+
                         if (_state.matches({ fulfillment:States.successful})) {
                         
                             if (_state.context) {
 
                                 var fulfillmentCycleOffset = moment(Date.now()).add(_state.context.fulfillmentOffset, 'days').format();
-                                
                                 const fulfilledStatesRecord = await FulfilledStates.query().where('subscription_id',newState.subscription_id)
                                
-               
+                                // check if exists in fulfilled_states table
                                 if (fulfilledStatesRecord) {
                                     if (fulfilledStatesRecord.length == 0) {
 
@@ -424,7 +435,7 @@ export const stateManager = async (subscriptionId: number, event: SubscriptionEv
        
         // Start the service
         if (lastState){
-
+            // console.log(lastState)
             const stateDefinition:State<context,SubscriptionEvent> = lastState.state
 
             // Use State.create() to restore state from a plain object
@@ -436,13 +447,13 @@ export const stateManager = async (subscriptionId: number, event: SubscriptionEv
             // Start the service
             service.start(resolvedState);
             
-        }else {
+        } else {
+            console.log('no history')
             service.start();
         }
 
         // Send events
         let _subscriptionEvent = event.type
-        // console.log(_subscriptionEvent)
         service.send(_subscriptionEvent,params);
 
         // Stop the service when you are no longer using it.

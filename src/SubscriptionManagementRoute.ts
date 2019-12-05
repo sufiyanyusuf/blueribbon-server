@@ -7,10 +7,10 @@ SubscriptionManagementRouter.route('/pauseSubscription').post(async function (re
     const pauseEvent: SubscriptionEvent = { type: EventTypes.pause }
     try { 
         const paused: boolean = await stateManager(subscriptionId, pauseEvent, {})
-        console.log('got paused - ',paused)
         res.status(200).json(paused)
         
     } catch (e) {
+        console.log(e)
         res.status(404).json('failed')
     }
 })
@@ -20,11 +20,15 @@ SubscriptionManagementRouter.route('/resumeSubscription').post(async function (r
     const pauseEvent: SubscriptionEvent = { type: EventTypes.resume }
     try { 
         const resumed:boolean = await stateManager(subscriptionId, pauseEvent, {})
-        res.status(200).json('done') // add value check for json true/false
+        res.status(200).json(resumed) // add value check for json true/false
         
     } catch (e) {
         res.status(404).json('failed')
     }
+})
+
+SubscriptionManagementRouter.route('/autoRenewSubscription').post(async function (req:express.Request, res:express.Response) {
+
 })
 
 SubscriptionManagementRouter.route('/renewSubscription').post(async function (req:express.Request, res:express.Response) {
@@ -34,6 +38,7 @@ SubscriptionManagementRouter.route('/renewSubscription').post(async function (re
 SubscriptionManagementRouter.route('/cancelSubscription').post(async function (req:express.Request, res:express.Response) {
 
 })
+
 
 
 module.exports = SubscriptionManagementRouter;
