@@ -105,7 +105,7 @@ SubscriptionsRouter.route('/orders').get(async (req, res) => {
             let brandName = subscription.brand_name
             let message = getOrderStatusMessage(fulfillmentState, brandName)
 
-            const options = {month: 'short', day: 'numeric'};
+            const options = {month: 'short', day: 'numeric', hour:'numeric', minute:'numeric'};
             const date  = new Date(subscription.currentState.timestamp);
             const formattedDate = date.toLocaleString("en-US", options);
 
