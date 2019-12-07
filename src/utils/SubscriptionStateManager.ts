@@ -391,9 +391,18 @@ export const stateManager = async (subscriptionId: number, event: SubscriptionEv
                         
                             if (_state.context) {
 
-                                var fulfillmentCycleOffset = moment(Date.now()).add(_state.context.fulfillmentOffset, 'days').format();
+                                console.log(_state.context)
+
+                                // determine offset from date of initiation , not fulfillment success...
+
+                                // get prev date
+
+                                // var fulfillmentCycleOffset = moment(Date.now()).add(_state.context.fulfillmentOffset, 'days').format();
+                                
+                                var fulfillmentCycleOffset = await getFulfillmentOffset(subscriptionId,_state.context.fulfillmentOffset)
+
                                 const fulfilledStatesRecord = await FulfilledStates.query().where('subscription_id',newState.subscription_id)
-                               
+                                
                                 // check if exists in fulfilled_states table
                                 if (fulfilledStatesRecord) {
                                     if (fulfilledStatesRecord.length == 0) {
@@ -463,6 +472,28 @@ export const stateManager = async (subscriptionId: number, event: SubscriptionEv
 
 }
 
+const getFulfillmentOffset = async (subscriptionId: number, fulfillmentOffset: number):Promise<number> => {
+    const states:Array<subscriptionStateRecord> = await SubscriptionState
+        .query()
+        .where('subscription_id', subscriptionId)
+        .where('fulfillment_state', 'pending')
+        .orderBy('id')
+    
+    const lastPendingState = states.slice(-1)[0]
+
+    let start = moment(new Date(lastPendingState.timestamp.toString()))
+    var now = moment(new Date())
+    var duration = moment.duration(now.diff(start));
+    var days = duration.asDays();
+
+    if (days < fulfillmentOffset) {
+        let nextCycle:number = moment(start.add(fulfillmentOffset, 'days').format())
+        return nextCycle
+    } else {
+        let nextCycle:number = moment(Date.now()).format();
+        return nextCycle
+    }
+}
 
 const clearFulfilledState = async (subscriptionId: number) => {
     const removedState = await FulfilledStates.query().delete().where('subscription_id',subscriptionId)

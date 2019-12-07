@@ -65,6 +65,14 @@ const getFulfillmentEventType = (action: string): SubscriptionEvent => {
         case EventTypes.success:
             return { type: EventTypes.success }
             break
+        
+        //for testing
+        case EventTypes.resetCycle:
+            return { type: EventTypes.resetCycle }
+            break
+        case EventTypes.endCycle:
+            return { type: EventTypes.endCycle }
+            break
         default:
             return null
     }
@@ -138,13 +146,16 @@ OrderManagementRouter.route('/getOrders/:orderState').get(async function (req:ex
 
 })
 
-OrderManagementRouter.route('/updateFulfillmentState').post(async function (req, res) {
+OrderManagementRouter.route('/updateFulfillmentState').post(async function (req:express.Request, res:express.Response) {
     
+    console.log(req.body.action)
+
     const subscriptionId:number = req.body.subscriptionId;
     const action: string = req.body.action; 
   
-    let subscriptionEvent = getFulfillmentEventType (action)
-    
+    let subscriptionEvent = getFulfillmentEventType(action)
+    console.log(subscriptionEvent)
+
     if (!subscriptionEvent) {
         res.status(400).json('not allowed')
     } else {
