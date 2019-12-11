@@ -2550,6 +2550,11 @@ expand-tilde@^2.0.0, expand-tilde@^2.0.2:
   dependencies:
     homedir-polyfill "^1.0.1"
 
+express-jwt-authz@^2.3.1:
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/express-jwt-authz/-/express-jwt-authz-2.3.1.tgz#b23e5b93646700acf3564a2e33479ae3e217614f"
+  integrity sha512-cChqAjXe8E3KDe4XbmkpYpk/vQdy4s3n1ccxVgij+2F0rS86hiOQvTrYnHBc1jZstqpGrOzLgHMByh046fKgyQ==
+
 express-jwt@^5.3.1:
   version "5.3.1"
   resolved "https://registry.yarnpkg.com/express-jwt/-/express-jwt-5.3.1.tgz#66f05c7dddb5409c037346a98b88965bb10ea4ae"

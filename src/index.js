@@ -19,8 +19,10 @@ const uploadRoute = require('./Listing/uploadRoute')
 const paymentRoute = require('./PaymentRoute')
 const userRoute = require('./userRoute')
 const orderRoute = require('./OrderManagementRoute')
+const marketplaceRoute = require('./MarketplaceRoute')
 const subscriptionRoute = require('./SubscriptionsRoute')
 const schedulerRoute = require('./SchedulerRoute')
+const businessInfoRoute = require('./BusinessInfoRoute')
 const subscriptionManagementRoute = require ('./SubscriptionManagementRoute')
 const axios = require('axios');
 const SubscriptionValueResolver = require('./utils/QuantityResolver')
@@ -30,10 +32,13 @@ const defaults = require('./utils/Defaults')
 const SubscriptionTrigger = require('./utils/SubscriptionTriggers')
 const { test } = require('./Notifications')
 
+const { addOrgId } = require('./Middleware/AddOrgId')
+
 var jwt = require('express-jwt');
 var jwks = require('jwks-rsa');
+var jwtAuthz = require('express-jwt-authz');
 
-var jwtCheck = jwt({
+var consumerJwtCheck = jwt({
     secret: jwks.expressJwtSecret({
         cache: true,
         rateLimit: true,
@@ -50,13 +55,12 @@ var orgJwtCheck = jwt({
         cache: true,
         rateLimit: true,
         jwksRequestsPerMinute: 5,
-        jwksUri: 'https://blue-ribbon.auth0.com/.well-known/jwks.json'
+        jwksUri: 'https://blue-ribbon-dashboard.auth0.com/.well-known/jwks.json'
   }),
-  audience: 'https://blueribbon.io/api/organization/user',
-  issuer: 'https://blue-ribbon.auth0.com/',
+  audience: 'https://api.blueribbon.io/business/',
+  issuer: 'https://blue-ribbon-dashboard.auth0.com/',
   algorithms: ['RS256']
 });
-
 
 // app.use(jwtCheck);
 
@@ -69,99 +73,20 @@ app.use(cors())
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use ('/api/payment',jwtCheck,paymentRoute);
-app.use ('/api/subscriptions',jwtCheck,subscriptionRoute)
-app.use ('/api/user', jwtCheck, userRoute);
-app.use ('/subscriptionManagment', jwtCheck, subscriptionManagementRoute);
+app.use ('/api/payment',consumerJwtCheck,paymentRoute);
+app.use ('/api/subscriptions',consumerJwtCheck,subscriptionRoute)
+app.use ('/api/user', consumerJwtCheck, userRoute);
+app.use ('/subscriptionManagment', consumerJwtCheck, subscriptionManagementRoute);
+app.use ('/marketplace', consumerJwtCheck, marketplaceRoute);
 
-app.use ('/orderManagement',orderRoute)
+app.use ('/business/orderManagement',orgJwtCheck,addOrgId,orderRoute)
 app.use ('/scheduler',schedulerRoute)
-app.use ('/api/modifier',modifierRoute);
-app.use ('/api/upload',uploadRoute);
-app.use ('/api/serviceLocations',serviceLocationRoute);
-app.use ('/api/listing',listingRoute);
+app.use ('/business/modifier',orgJwtCheck,addOrgId,modifierRoute);
+app.use ('/business/upload',orgJwtCheck,addOrgId,uploadRoute);
+app.use ('/business/serviceLocations',orgJwtCheck,addOrgId,serviceLocationRoute);
+app.use ('/business/listing', orgJwtCheck, addOrgId, listingRoute);
+app.use ('/business/info',orgJwtCheck,addOrgId,businessInfoRoute);
 
-app.get('/api/productInfo/:id', (req, res) => {
-    let id = parseInt(req.params.id)
-    productInfo.query()
-        .where('listing_id', id)
-        .then(prod => {
-            res.json(prod[0])
-        })
-})
-
-app.get('/api/organizations', (req, res) => {
-    Organization.query()
-        .then(organizations => {
-            res.json(organizations)
-        })
-})
-
-app.get('/api/listing', (req, res) => {
-    Listing.query()
-        .then(listings => {
-            res.json(listings)
-        })
-})
-
-app.get('/api/organizations/listing/:id', async (req, res) => {
-    let id = parseInt(req.params.id)
-    Organization.query()
-        .where('id', id)
-        .eager('listings')
-        .then(org => {
-            res.json(org)
-        })
-})
-
-app.get('/api/search/serviceAreas/:query', async (req, res) => {
-
-    let keywords = req.params.query;
-  
-    var areas= serviceLocations.filter(function(item){
-
-        // var name0 = item.properties.NAME_0; //load json for country
-        var name1 = item.properties.NAME_1; //city
-        var name3 = item.properties.NAME_3; //area
-        if ((name3 && name3.toLowerCase().includes(keywords.toLowerCase()))
-            ||(name1 && name1.toLowerCase().includes(keywords.toLowerCase()))
-        ){
-            return item
-        }         
-    });
-
-    const polygons = areas.map((area)=>{
-        return area.geometry.coordinates[0][0]
-    })
-
-    var gPolygonArray = polygons.map (coordinateSet => {
-        return coordinateSet.map(coordinate => {
-            return {lat:coordinate[1],lng:coordinate[0]}
-        })
-    })
-
-    const formattedArray = areas.map((area,index) => {
-        var label = ''
-       
-        if (area.properties.NAME_3){
-            label = area.properties.NAME_3
-        }else if (area.properties.NAME_2){
-            label = area.properties.NAME_2
-        }else{
-            label = area.properties.NAME_1
-        }
-
-        return {
-            label:label,
-            value:area.id,
-            key:area.id,
-            data_id:area.id,
-            polygon:gPolygonArray[index],    
-        }
-    })
-    res.json ({areas:formattedArray});
-    // res.json(areas);
-})
 
 app.get('/api/pubsub/local',async (req, res) => {
     //add auth middleware to this later on
@@ -174,13 +99,13 @@ app.get('/api/pubsub/local',async (req, res) => {
 app.post('/api/pubsub',async (req, res) => {
     //add auth middleware to this later on
 console.log('subscription check req received');
-axios.get('https://3458a3ef.ngrok.io/api/pubsub/local')
+axios.get('https://4f2d1a09.ngrok.io/api/pubsub/local')
 res.status(204).json('done');
 
 });
 
 app.listen(port, function () {
-    console.log('Blueribbon listening on port ', port);
+    console.log('Blueribbon, to infinity & beyond !!!');
     // SubscriptionTrigger.checkCycle()
     // test()
     // sendNotification()

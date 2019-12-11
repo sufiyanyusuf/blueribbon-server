@@ -12,6 +12,7 @@ class Organization extends Model {
   static get relationMappings() {
     
     const listing = require('./listing');
+    
     return{
         listings:{
             relation: Model.HasManyRelation,

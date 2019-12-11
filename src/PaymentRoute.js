@@ -132,15 +132,15 @@ var getSubscription = function (listingId, userId, quantity, period, unit, frequ
 var updateUserPurchase = function (purchase, subscription, intervals, frequencyOffset) { return __awaiter(void 0, void 0, void 0, function () {
     return __generator(this, function (_a) {
         return [2 /*return*/, new Promise(function (resolve, reject) { return __awaiter(void 0, void 0, void 0, function () {
-                var _subscription, _purchase, _subscriptionId, eventType, e_2;
+                var _subscription, _purchase, _subscriptionId, eventType, purchased, e_2;
                 return __generator(this, function (_a) {
                     switch (_a.label) {
                         case 0:
                             if (!(intervals == 0)) return [3 /*break*/, 1];
                             reject(Error('Invalid Subscription Value. Please Try Later'));
-                            return [3 /*break*/, 5];
+                            return [3 /*break*/, 6];
                         case 1:
-                            _a.trys.push([1, 4, , 5]);
+                            _a.trys.push([1, 5, , 6]);
                             return [4 /*yield*/, Subscription.query().insert(subscription)];
                         case 2:
                             _subscription = _a.sent();
@@ -149,15 +149,16 @@ var updateUserPurchase = function (purchase, subscription, intervals, frequencyO
                             _purchase = _a.sent();
                             _subscriptionId = _subscription.id;
                             eventType = { type: SubscriptionStateManager_1.EventTypes.paymentSuccess, value: intervals, fulfillmentOffset: frequencyOffset };
-                            SubscriptionStateManager_1.stateManager(_subscriptionId, eventType, { value: intervals, fulfillmentOffset: frequencyOffset });
-                            // StateManager(_subscription.id, 'PAYMENT_SUCCESS', {value:intervals,fulfillmentOffset:getFrequencyOffset});
-                            resolve(_subscription);
-                            return [3 /*break*/, 5];
+                            return [4 /*yield*/, SubscriptionStateManager_1.stateManager(_subscriptionId, eventType, { value: intervals, fulfillmentOffset: frequencyOffset })];
                         case 4:
+                            purchased = _a.sent();
+                            resolve(_subscription);
+                            return [3 /*break*/, 6];
+                        case 5:
                             e_2 = _a.sent();
                             reject(e_2);
-                            return [3 /*break*/, 5];
-                        case 5: return [2 /*return*/];
+                            return [3 /*break*/, 6];
+                        case 6: return [2 /*return*/];
                     }
                 });
             }); })];

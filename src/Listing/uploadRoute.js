@@ -55,7 +55,6 @@ const bucket = googleCloudStorage.bucket(process.env.GCLOUD_STORAGE_BUCKET);
 
 uploadRouter.route('/productImage').post(m.single("file"), (req, res, next) => {
 
-
   if (!req.file) {
     res.status(400).send("No file uploaded.");
     return;

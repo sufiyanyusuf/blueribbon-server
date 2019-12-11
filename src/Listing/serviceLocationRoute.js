@@ -26,8 +26,8 @@ ServiceLocationRouter.route('/:listing_id').get(async function (req, res) {
     try{
 
         const areas = await ServiceLocation
-                                        .query()
-                                        .where('listing_id', listing_id);
+            .query()
+            .where('listing_id', listing_id);
                      
         res.json(areas);
 

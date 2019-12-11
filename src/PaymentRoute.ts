@@ -149,7 +149,7 @@ const updateUserPurchase = async (purchase: Purchase,subscription: Subscription,
   })
 }
 
-const getFrequencyOffset = async (req: any): Promise<number> => {
+const getFrequencyOffset = async (req: express.Request): Promise<number> => {
   return new Promise<number>(async (resolve, reject) => {
     try {
 
@@ -166,7 +166,7 @@ const getFrequencyOffset = async (req: any): Promise<number> => {
   })
 }
 
-const getFulfillmentIntervals = async (req: any): Promise<number> => {
+const getFulfillmentIntervals = async (req: express.Request): Promise<number> => {
   return new Promise<number>(async (resolve, reject) => {
     try {
       const quantity = req.body.quantity
@@ -256,7 +256,7 @@ PaymentRouter.route('/new/charge').post(async (req:express.Request, res:express.
 
 });
 
-PaymentRouter.route('/new/applePay').post(async (req:any, res:express.Response) => {
+PaymentRouter.route('/new/applePay').post(async (req:express.Request, res:express.Response) => {
 
   // console.log(req.body)
   // validate all params before charging

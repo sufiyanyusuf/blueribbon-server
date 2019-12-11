@@ -83,11 +83,12 @@ const getFulfillmentEventType = (action: string): SubscriptionEvent => {
 OrderManagementRouter.route('/getActiveOrders').get(async function (req:express.Request, res:express.Response) {
 })
 
-OrderManagementRouter.route('/getOrders/:orderState').get(async function (req:express.Request, res:express.Response) {
+OrderManagementRouter.route('/getOrders/:orderState').get(async function (req:any, res:express.Response) {
     try{
 
         const orderState = req.params.orderState
-        console.log(orderState)
+        const orgId = req.user.orgId
+
         const storedStates = await SubscriptionState.query() //query by org id later
 
         const idList = getSubscriptionIdList(storedStates)
