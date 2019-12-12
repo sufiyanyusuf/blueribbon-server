@@ -1,5 +1,6 @@
 {
-   "compilerOptions": {
+  "compileOnSave": true,
+  "compilerOptions": {
       "module": "commonjs",
       "rootDir": "src",
       "moduleResolution": "node",
@@ -8,5 +9,6 @@
       "noImplicitAny": true,
     },
       "include": ["src/"],
-      "exclude": ["node_modules"]
+      "exclude": ["node_modules"],
+      "files":["type.d.ts"]
 }

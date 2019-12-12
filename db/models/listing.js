@@ -13,7 +13,8 @@ class Listing extends Model {
     const productInfo = require('./productInfo');
     const modifer = require('./modifier');
     const organization = require('./organization');
-    
+    const subscription = require('./subscription');
+
     return{
       productInfo:{
         relation:Model.HasOneRelation,
@@ -37,6 +38,14 @@ class Listing extends Model {
         join:{
           from:'Listings.organization_id',
           to:'Organizations.id'
+        }
+      },
+      subscription: {
+        relation:Model.HasManyRelation,
+        modelClass:subscription,
+        join:{
+          from:'Listings.id',
+          to:'User_Subscriptions.listing_id'
         }
       }
     }

@@ -11,17 +11,35 @@ class Subscriptions extends Model {
 
   static get relationMappings() {
     // Importing models here is a one way to avoid require loops.
-    const purchase = require('./purchase');
+    const Purchase = require('./purchase');
+    const SubscriptionState = require('./subscriptionState')
+    const Listing = require('./listing')
 
     return{
-        purchase:{
-          relation: Model.HasManyRelation,
-          modelClass:purchase,
-          join:{
-              from : 'User_Subscriptions.id',
-              to : 'Purchases.subscription_id'
-          }
+      purchase:{
+        relation: Model.HasManyRelation,
+        modelClass:Purchase,
+        join:{
+            from : 'User_Subscriptions.id',
+            to : 'Purchases.subscription_id'
         }
+      },
+      states: {
+        relation: Model.HasManyRelation,
+        modelClass:SubscriptionState,
+        join:{
+            from : 'User_Subscriptions.id',
+            to : 'Subscription_States.subscription_id'
+        }
+      },
+      currentState: {
+        relation: Model.HasOneRelation,
+        modelClass:SubscriptionState,
+        join:{
+            from : 'User_Subscriptions.current_state',
+            to : 'Subscription_States.id'
+        }
+      },
     }
 
   }

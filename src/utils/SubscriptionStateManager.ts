@@ -2,7 +2,9 @@ import { transaction } from 'objection'
 import { State, Machine, actions, send, interpret, Action, MachineConfig, matchesState } from 'xstate'
 import { Transaction } from 'knex';
 import { stateValuesEqual } from 'xstate/lib/State';
+import { notifySubscriber, NotificationEvent, NotificationTypes } from './../Notifications';
 const SubscriptionState = require('../../db/models/subscriptionState')
+const UserSubscription = require('../../db/models/subscription')
 const FulfilledStates = require('../../db/models/fulfilledStates')
 const moment = require('moment')
 
@@ -118,8 +120,7 @@ const subscriptionInvalid = (context:context, event:SubscriptionEvent) => {
     return context.remainingFulfillmentIntervals < 1 && !context.paused;
 }
 
-
-const deductSubscriptionValue = actions.assign<context,SubscriptionEvent>({
+const deductSubscriptionValue = actions.assign<context, SubscriptionEvent>({
     remainingFulfillmentIntervals: (context:context, event:SubscriptionEvent) => {
         return context.remainingFulfillmentIntervals - 1
     }
@@ -263,118 +264,236 @@ const machine = Machine<context,schema,SubscriptionEvent>({
     }
 })
 
-export const stateManager = async (subscriptionId:number, event:SubscriptionEvent , params:any = {}) => {
-    console.log(subscriptionId,event,params)
-    const storedState:[subscriptionStateRecord] = await SubscriptionState.query().where('subscription_id',subscriptionId)
+export const stateManager = async (subscriptionId: number, event: SubscriptionEvent, params: any = {}):Promise<boolean> => {
     
-    var lastState:subscriptionStateRecord
-    storedState.map((state:subscriptionStateRecord) => {
-        if (!lastState){
-            lastState = state
-        }else{
-            if (lastState.id < state.id) {
-                lastState = state
-            }
-        }
-    })
-
-    if (lastState){
-
-        const stateDefinition:State<context,SubscriptionEvent> = lastState.state
-
-        // Use State.create() to restore state from a plain object
-        const previousState = State.create(stateDefinition);
-
-        // Use machine.resolveState() to resolve the state definition to a new State instance relative to the machine
-        const resolvedState = machine.resolveState(previousState);
-
-        // Start the service
-        var service = interpret(machine).start(resolvedState);
+    return new Promise<boolean>(async (resolve, reject) => { 
+    
+        // console.log(subscriptionId, event, params)
         
-    }else {
-        service = interpret(machine).start();
-    }
-
-    //any -> schema
-
-    service.onTransition(async (_state: any) => {
+        const storedState:[subscriptionStateRecord] = await SubscriptionState.query().where('subscription_id',subscriptionId)
+        const subscription = await UserSubscription.query().findById(subscriptionId)
         
-        if (_state.changed) {
-            
-            if (event.type == EventTypes.resetCycle){
-                clearFulfilledState(subscriptionId)
-            }
-            if (event.type == EventTypes.endCycle) {
-                clearFulfilledState(subscriptionId)
-            }
-            
-            const knex = SubscriptionState.knex();
-            
-            try {
+        var lastState: subscriptionStateRecord
+        lastState = await subscription.$relatedQuery('currentState')   
+        // console.log(lastState)
+        // if (!lastState) {
+        //     storedState.map((state:subscriptionStateRecord) => {
+        //         if (!lastState){
+        //             lastState = state
+        //         }else{
+        //             if (lastState.id < state.id) {
+        //                 lastState = state
+        //             }
+        //         }
+        //     })
+        // }
+
+        let service = interpret(machine);
+
+        service.onTransition(async (state) => {
+  
+            // console.log(state.changed)
+
+            if (state.changed === false){
+                reject('no change')
+            } 
+
+            if (state.changed === true) {
+                let _state = <any> state
+                const knex = SubscriptionState.knex();
                 
-                var options:Array<string>
-                if (_state.matches({ fulfillment:States.ineligible})) {
-                    options = (machine.states.fulfillment.states.ineligible.events)
-                }else if (_state.matches({ fulfillment: States.pending})){
-                    options = (machine.states.fulfillment.states.pending.events)
-                }else if (_state.matches({ fulfillment:States.initiated})){
-                    options = (machine.states.fulfillment.states.initiated.events)
-                }else if (_state.matches({ fulfillment:States.shipped})){
-                    options = (machine.states.fulfillment.states.shipped.events)
-                }else if (_state.matches({ fulfillment:States.successful})){
-                    options = (machine.states.fulfillment.states.successful.events) //change this
-                }else if (_state.matches({ fulfillment:States.failure})){
-                    options = (machine.states.fulfillment.states.failure.events)
-                }
-                        
-                const state = await transaction(knex, async (trx) => {
-                    const newState = await SubscriptionState
-                    .query(trx)
-                    .insert({
-                        'subscription_id': subscriptionId, 
-                        'state': _state, 
-                        'subscription_state':_state.value.subscription, 
-                        'payment_state':_state.value.payment, 
-                        'fulfillment_state':_state.value.fulfillment,
-                        'fulfillment_options':options
-                    });
-                    
-                    
-                    if (_state.matches({ fulfillment:States.successful})) {
-                    
-                        if (_state.context) {
-                            var fulfillmentCycleOffset = moment(Date.now()).add(_state.context.fulfillmentOffset, 'days').format();
-                            // console.log('offset', params.fulfillmentCycleOffset)
-                            
-                            const fulfilledState = await newState
-                            .$relatedQuery('fulfilledState',trx)
-                            .insert({
-                                'subscription_id': subscriptionId, 
-                                'next_cycle':fulfillmentCycleOffset
-                            });
-                            return fulfilledState;
+                try {
+
+                    // send notifications where applicable (move this elsewhere )
+    
+                    if (event.type == EventTypes.resetCycle){
+                        clearFulfilledState(subscriptionId)
+                    }
+                    if (event.type == EventTypes.endCycle) {
+                        clearFulfilledState(subscriptionId)
+                        // avoid multiple calls
+                        if (_state.matches({ subscription:States.inactive })) {
+                            let notificationEvent: NotificationEvent = {
+                                type:NotificationTypes.subscriptionExpired,
+                                subscriptionId:subscriptionId
+                            }
+                            notifySubscriber(notificationEvent) 
                         }
                     }
-                    return newState;
-                });
+                    if (event.type == EventTypes.shipped) {
+                        //
+                        let notificationEvent: NotificationEvent = {
+                            type:NotificationTypes.itemShipped,
+                            subscriptionId:subscriptionId
+                        }
+                        notifySubscriber(notificationEvent)
+                    }
+                    if (event.type == EventTypes.failure) {
+                        //
+                    }
+                    if (event.type == EventTypes.success) {
+                        //
+                    }
+                    if (event.type == EventTypes.paymentDeclined) {
+                        let notificationEvent: NotificationEvent = {
+                            type:NotificationTypes.paymentDeclined,
+                            subscriptionId:subscriptionId
+                        }
+                        notifySubscriber(notificationEvent)
+                    }
+                    if (event.type == EventTypes.paymentSuccess) {
+                        //
+                    }
+                    
+                    // get possible fulfillment options for the state
+    
+                    var options:Array<string>
+                    if (_state.matches({ fulfillment:States.ineligible})) {
+                        options = (machine.states.fulfillment.states.ineligible.events)
+                    }else if (_state.matches({ fulfillment: States.pending})){
+                        options = (machine.states.fulfillment.states.pending.events)
+                    }else if (_state.matches({ fulfillment:States.initiated})){
+                        options = (machine.states.fulfillment.states.initiated.events)
+                    }else if (_state.matches({ fulfillment:States.shipped})){
+                        options = (machine.states.fulfillment.states.shipped.events)
+                    }else if (_state.matches({ fulfillment:States.successful})){
+                        options = (machine.states.fulfillment.states.successful.events) //change this
+                    }else if (_state.matches({ fulfillment:States.failure})){
+                        options = (machine.states.fulfillment.states.failure.events)
+                    }
+                    
+                    // write state to db        
+                    const writtenState = await transaction(knex, async (trx) => {
+    
+                        const newState = await SubscriptionState
+                        .query(trx)
+                        .insert({
+                            'subscription_id': subscriptionId, 
+                            'state': _state, 
+                            'subscription_state':_state.value.subscription, 
+                            'payment_state':_state.value.payment, 
+                            'fulfillment_state':_state.value.fulfillment,
+                            'fulfillment_options':options
+                        });
 
-                
-            } catch (err) {
-                console.log(err, 'Something went wrong. State not inserted');
+                        var isActive = !(_state.value.subscription == States.inactive)
+                        
+
+                        const updatedUserSubscription = await UserSubscription
+                            .query(trx)
+                            .findById(subscriptionId)
+                            .patch({
+                                'current_state': newState.id,
+                                'is_active':isActive
+                             });
+
+                        if (_state.matches({ fulfillment:States.successful})) {
+                        
+                            if (_state.context) {
+
+                                console.log(_state.context)
+
+                                // determine offset from date of initiation , not fulfillment success...
+
+                                // get prev date
+
+                                // var fulfillmentCycleOffset = moment(Date.now()).add(_state.context.fulfillmentOffset, 'days').format();
+                                
+                                var fulfillmentCycleOffset = await getFulfillmentOffset(subscriptionId,_state.context.fulfillmentOffset)
+
+                                const fulfilledStatesRecord = await FulfilledStates.query().where('subscription_id',newState.subscription_id)
+                                
+                                // check if exists in fulfilled_states table
+                                if (fulfilledStatesRecord) {
+                                    if (fulfilledStatesRecord.length == 0) {
+
+                                        const fulfilledState = await newState
+                                        .$relatedQuery('fulfilledState', trx)
+                                        .insert({
+                                            'subscription_id': subscriptionId, 
+                                            'next_cycle':fulfillmentCycleOffset
+                                        })
+
+                                        return fulfilledState;
+
+                                    } 
+                                }
+
+                            }
+                        }
+                        return newState;
+                    });
+
+                    if (writtenState) {
+                        resolve(true)
+                    } else {
+                        console.log('no written state ?')
+                        resolve(false)
+                    }
+    
+                    
+                } catch (err) {
+                    //reject promise
+                    console.log(err, 'Something went wrong. State not inserted');
+                    reject(err)
+                }
             }
+           
+
+        })
+       
+        // Start the service
+        if (lastState){
+            // console.log(lastState)
+            const stateDefinition:State<context,SubscriptionEvent> = lastState.state
+
+            // Use State.create() to restore state from a plain object
+            const previousState = State.create(stateDefinition);
+
+            // Use machine.resolveState() to resolve the state definition to a new State instance relative to the machine
+            const resolvedState = machine.resolveState(previousState);
+
+            // Start the service
+            service.start(resolvedState);
+            
+        } else {
+            console.log('no history')
+            service.start();
         }
-    });
 
-    // Send events
-    let _subscriptionEvent = event.type
-    console.log(_subscriptionEvent)
-    service.send(_subscriptionEvent,params);
+        // Send events
+        let _subscriptionEvent = event.type
+        service.send(_subscriptionEvent,params);
 
-    // Stop the service when you are no longer using it.
-    service.stop();
+        // Stop the service when you are no longer using it.
+        service.stop();
+        
+    })
 
 }
 
+const getFulfillmentOffset = async (subscriptionId: number, fulfillmentOffset: number):Promise<number> => {
+    const states:Array<subscriptionStateRecord> = await SubscriptionState
+        .query()
+        .where('subscription_id', subscriptionId)
+        .where('fulfillment_state', 'pending')
+        .orderBy('id')
+    
+    const lastPendingState = states.slice(-1)[0]
+
+    let start = moment(new Date(lastPendingState.timestamp.toString()))
+    var now = moment(new Date())
+    var duration = moment.duration(now.diff(start));
+    var days = duration.asDays();
+
+    if (days < fulfillmentOffset) {
+        let nextCycle:number = moment(start.add(fulfillmentOffset, 'days').format())
+        return nextCycle
+    } else {
+        let nextCycle:number = moment(Date.now()).format();
+        return nextCycle
+    }
+}
 
 const clearFulfilledState = async (subscriptionId: number) => {
     const removedState = await FulfilledStates.query().delete().where('subscription_id',subscriptionId)

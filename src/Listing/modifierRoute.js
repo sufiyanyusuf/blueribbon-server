@@ -12,7 +12,8 @@ ModifierRouter.route('/:listing_id').get(async function (req, res){
         })
 });
 
-ModifierRouter.route('/:modifier_id').delete(async function (req,res){
+ModifierRouter.route('/remove/:modifier_id').delete(async function (req, res) {
+    console.log('remove')
     let modifier_id = parseInt(req.params.modifier_id)
     console.log(modifier_id,typeof(modifier_id));
     try {

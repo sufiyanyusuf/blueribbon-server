@@ -135,16 +135,12 @@ const updateUserPurchase = async (purchase: Purchase,subscription: Subscription,
       reject(Error('Invalid Subscription Value. Please Try Later'))
     }else{
       try{
-        // const _purchase = await Purchase.query().insert(purchase);                              
-        // const _subscription = await _purchase.$relatedQuery('subscription').insert(subscription);
         const _subscription = await Subscription.query().insert(subscription)
-
         const _purchase = await _subscription.$relatedQuery('purchase').insert(purchase)
         const _subscriptionId: number = _subscription.id
         const eventType: SubscriptionEvent = {type:EventTypes.paymentSuccess,value:intervals,fulfillmentOffset:frequencyOffset}
         
-        stateManager(_subscriptionId,eventType,{value:intervals,fulfillmentOffset:frequencyOffset})
-        // StateManager(_subscription.id, 'PAYMENT_SUCCESS', {value:intervals,fulfillmentOffset:getFrequencyOffset});
+        const purchased:boolean = await stateManager(_subscriptionId,eventType,{value:intervals,fulfillmentOffset:frequencyOffset})
         resolve(_subscription)
       }catch(e){
         reject(e)
@@ -153,7 +149,7 @@ const updateUserPurchase = async (purchase: Purchase,subscription: Subscription,
   })
 }
 
-const getFrequencyOffset = async (req: any): Promise<number> => {
+const getFrequencyOffset = async (req: express.Request): Promise<number> => {
   return new Promise<number>(async (resolve, reject) => {
     try {
 
@@ -170,7 +166,7 @@ const getFrequencyOffset = async (req: any): Promise<number> => {
   })
 }
 
-const getFulfillmentIntervals = async (req: any): Promise<number> => {
+const getFulfillmentIntervals = async (req: express.Request): Promise<number> => {
   return new Promise<number>(async (resolve, reject) => {
     try {
       const quantity = req.body.quantity
@@ -260,7 +256,7 @@ PaymentRouter.route('/new/charge').post(async (req:express.Request, res:express.
 
 });
 
-PaymentRouter.route('/new/applePay').post(async (req:any, res:express.Response) => {
+PaymentRouter.route('/new/applePay').post(async (req:express.Request, res:express.Response) => {
 
   // console.log(req.body)
   // validate all params before charging

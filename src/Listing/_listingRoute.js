@@ -142,4 +142,25 @@ ListingRouter.route('/:listing_id/').get(async function(req, res){
 
 })
 
+ListingRouter.route('/').get(async function(req, res){
+  
+  try{
+
+      
+      const listing = await Listing
+        .query()
+        .where('status','LIVE')
+        .eager('[organization,productInfo]')
+
+      console.log(listing)
+      res.status(200).json(listing)
+    
+    
+  } catch (e) {
+    console.log(e)
+    res.status(400).json(e)
+  }
+
+})
+
 module.exports = ListingRouter;

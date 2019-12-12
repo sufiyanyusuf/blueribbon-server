@@ -1,11 +1,10 @@
 import express from 'express';
 import { stateManager, EventTypes, SubscriptionEvent } from './utils/SubscriptionStateManager'
-import {$enum} from "ts-enum-util";
-import { type } from 'os';
 const OrderManagementRouter = express.Router();
 const SubscriptionState = require('../db/models/subscriptionState')
 const Subscription = require('../db/models/subscription')
-
+const Purchase = require('../db/models/purchase')
+const Listing = require('../db/models/listing')
 
 interface subscriptionState {
     id:number,
@@ -67,6 +66,14 @@ const getFulfillmentEventType = (action: string): SubscriptionEvent => {
         case EventTypes.success:
             return { type: EventTypes.success }
             break
+        
+        //for testing
+        case EventTypes.resetCycle:
+            return { type: EventTypes.resetCycle }
+            break
+        case EventTypes.endCycle:
+            return { type: EventTypes.endCycle }
+            break
         default:
             return null
     }
@@ -77,80 +84,69 @@ const getFulfillmentEventType = (action: string): SubscriptionEvent => {
 OrderManagementRouter.route('/getActiveOrders').get(async function (req:express.Request, res:express.Response) {
 })
 
-OrderManagementRouter.route('/getOrders/:orderState').get(async function (req:express.Request, res:express.Response) {
+OrderManagementRouter.route('/getOrders').get(async function (req:any, res:express.Response) {
     try{
 
         const orderState = req.params.orderState
-        console.log(orderState)
-        const storedStates = await SubscriptionState.query() //query by org id later
+        const orgId = req.user.orgId
 
-        const idList = getSubscriptionIdList(storedStates)
-
-        const currentSubscriptionStatesById = idList.map(id => {
-            const states = getSubscriptionStatesForId(storedStates,id)
-            return getCurrentStateforSubscription(states)
-        })
         
-        const matchingOrderStates = currentSubscriptionStatesById.filter(state => {
-            if (state.fulfillment_state == orderState){
-                const result = {
-                    'timestamp':state.timestamp,
-                    'fulfillment_state':state.fulfillment_state,
-                    'actions':state.fulfillment_options,
-                    'subscription_id':state.subscription_id
-                }
-                return result
+        let listings = await Listing
+            .query()
+            .where('organization_id', orgId)
+            .eager('[subscription.[currentState,purchase]]')
+        
+        let _listings = listings.filter((listing: any) => Object.keys(listing).length !== 0)
+        
+        let subscriptions = _listings.map((listing: any) => { return listing.subscription })
+        let _subscriptions = subscriptions.filter((subscription: any) => Object.keys(subscription).length !== 0)[0]
+
+        let subscriptionStates:Array<subscriptionState> = _subscriptions.map((subscription: any) => { return subscription.currentState })
+        
+        let purchases = _subscriptions.map((subscription: any) => { return subscription.purchase })//order by timestamp
+        let _purchases = purchases.filter((purchase: any) => Object.keys(purchase).length !== 0)
+
+        let orders = subscriptionStates.map((subscriptionState: any, index: any) => {
+            let subscription = _subscriptions[index]
+            let purchase = _purchases[index]
+            let _purchase = purchase[purchase.length - 1]
+            let order = {
+                ...subscriptionState,
+                'title':subscription.title,
+                'customer':subscription.user_id,
+                'order': _purchase.order_details,
+                'address':_purchase.delivery_address
             }
+            return order
         })
 
-        if (matchingOrderStates.length>0){
+        res.status(200).json(orders)
 
-            const orders = await Promise.all(matchingOrderStates.map(async (orderState:any) => {
-    
-                try {
-    
-                    const subscription = await Subscription
-                    .query()
-                    .findById(orderState.subscription_id)
-                    .eager('purchase')
-                  
-                    const order = {
-                        ...orderState,
-                        'title':subscription.title,
-                        'customer':subscription.user_id,
-                        'order':subscription.purchase.order_details
-                    }
-    
-                    return order
-    
-                }
-                catch(e){
-                    return (e)
-                }
-            }));
-    
-            res.status(200).json(orders)
-        }else{
-            res.status(204).json({})
-        }
-
-    }catch(e){
-        res.status(500).json(e)
+    } catch (e) {
+        res.status(400).json(e)
     }
 
 })
 
-OrderManagementRouter.route('/updateFulfillmentState').post(async function (req, res) {
+OrderManagementRouter.route('/updateFulfillmentState').post(async function (req:express.Request, res:express.Response) {
     
+    console.log(req.body.action)
+
     const subscriptionId:number = req.body.subscriptionId;
     const action: string = req.body.action; 
   
-    let subscriptionEvent = getFulfillmentEventType (action)
-    
+    let subscriptionEvent = getFulfillmentEventType(action)
+    console.log(subscriptionEvent)
+
     if (!subscriptionEvent) {
         res.status(400).json('not allowed')
     } else {
-        stateManager(subscriptionId,subscriptionEvent);
+        try { 
+            const updated = await stateManager(subscriptionId, subscriptionEvent);
+            res.status(200).json(updated)
+        } catch (e) {
+            res.status(404).json(e)
+        }
     }
     
 })
