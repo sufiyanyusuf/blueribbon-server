@@ -13,6 +13,8 @@ class Subscriptions extends Model {
     // Importing models here is a one way to avoid require loops.
     const Purchase = require('./purchase');
     const SubscriptionState = require('./subscriptionState')
+    const Listing = require('./listing')
+
     return{
       purchase:{
         relation: Model.HasManyRelation,
@@ -37,8 +39,7 @@ class Subscriptions extends Model {
             from : 'User_Subscriptions.current_state',
             to : 'Subscription_States.id'
         }
-      }
-      
+      },
     }
 
   }
