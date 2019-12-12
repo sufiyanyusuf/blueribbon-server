@@ -256,7 +256,7 @@ PaymentRouter.route('/new/charge').post(async (req:express.Request, res:express.
 
 });
 
-PaymentRouter.route('/new/applePay').post(async (req:express.Request, res:express.Response) => {
+PaymentRouter.route('/new/applePay').post(async (req:any, res:express.Response) => {
 
   // console.log(req.body)
   // validate all params before charging
