@@ -120,11 +120,9 @@ OrderManagementRouter.route('/getOrders').get(async function (req:any, res:expre
             return order
         })
 
-        console.log(orders)
         res.status(200).json(orders)
 
     } catch (e) {
-        console.log(e)
         res.status(400).json(e)
     }
 

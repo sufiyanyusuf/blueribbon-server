@@ -62,9 +62,6 @@ var orgJwtCheck = jwt({
   algorithms: ['RS256']
 });
 
-// app.use(jwtCheck);
-
-
 app.use(responseTime(function (req, res, time) {
 console.log(time)
 }))
