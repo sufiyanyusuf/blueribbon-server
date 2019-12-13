@@ -66,6 +66,7 @@ app.use(responseTime(function (req, res, time) {
 console.log(time)
 }))
 
+
 app.use(cors())
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
