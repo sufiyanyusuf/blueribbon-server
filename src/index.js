@@ -71,9 +71,9 @@ app.use(cors())
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use ('/api/payment',consumerJwtCheck,paymentRoute);
-app.use ('/api/subscriptions',consumerJwtCheck,subscriptionRoute)
-app.use ('/api/user', consumerJwtCheck, userRoute);
+app.use ('/payment',consumerJwtCheck,paymentRoute);
+app.use ('/subscriptions',consumerJwtCheck,subscriptionRoute)
+app.use ('/user', consumerJwtCheck, userRoute);
 app.use ('/subscriptionManagment', consumerJwtCheck, subscriptionManagementRoute);
 app.use ('/marketplace', consumerJwtCheck, marketplaceRoute);
 
